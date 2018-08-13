@@ -1,0 +1,31 @@
+{
+  "name": "nucleotid",
+  "version": "0.1.0",
+  "description": "Lab data manager",
+  "main": "index.js",
+  "scripts": {
+    "start": "node ./backend/server",
+    "devstart": "nodemon ./backend/server",
+    "db": "mongod --dbpath ./db --auth",
+    "db-root": "mongod --dbpath ./db"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ezorita/nucleotid.git"
+  },
+  "author": "ezorita",
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/ezorita/nucleotid/issues"
+  },
+  "homepage": "https://github.com/ezorita/nucleotid#readme",
+  "dependencies": {
+    "express": "^4.16.3",
+    "http-errors": "^1.7.0",
+    "mongoose": "^5.2.7",
+    "morgan": "^1.9.0"
+  },
+  "devDependencies": {
+    "nodemon": "^1.18.3"
+  }
+}
