@@ -1,6 +1,6 @@
 var passport = require('passport');
 var GoogleStrategy = require('passport-google-oauth20').Strategy;
-
+var User = require('../models/user');
 
 // Configure Google OAUTH 2.0.
 passport.use(
@@ -11,22 +11,76 @@ passport.use(
       callbackURL: 'http://127.0.0.1:3000/login/google/return'
     },
     function(accessToken, refreshToken, profile, cb) {
-      // TODO:
-      // Here one must implement a function to check the database
-      // if the profiled user exists in the database, log it in, so
-      // return cb(null, profile), if it does not exist, register it
-      // in the database, in case of error, return cb(err, null);
-      /*
-	User.findOrCreate(
-	  { googleId: profile.id }, 
-          function (err, user) {
-	    return cb(err, user);
+      // Find user by google ID.
+      User.findOne(
+	{"type.google.providerId": profile.id},
+	(err, guser) => {
+	  // Query error, propagate err through callback.
+	  if (err) {
+	    console.log('error findOne(googleID)');
+	    return cb(err);
 	  }
-	);
-      */
-
-      // Now we assume no error and direct authentication.
-      return cb(null, profile);
+	  if (!guser) {
+	    console.log('google userID not found in database');
+	    // Google user not yet in DB: merge web user or create new.
+	    // Get google e-mail.
+	    var email = null;
+	    for (var i = 0; i < profile.emails.length; i++) {
+	      if (profile.emails[i].type == "account") {
+		email = profile.emails[i].value;
+		break;
+	      }
+	    }
+	    console.log('find web user by email:' + email);
+	    // Search google email in database.
+	    User.findOne(
+	      {email: email},
+	      function (err, wuser) {
+		// Query error, propagate through cb.
+		if (err) {
+		  console.log('error findOne(email)');
+		  return cb(err);
+		}
+		if (!wuser) {
+		  // email not found: create new user.
+		  // Create user from google profile info.
+		  // TODO: Sanitize this.
+		  // TODO: function: userFromGoogleProfile
+		  var newuser = userFromGoogleProfile(profile);
+		  newuser.accessToken = accessToken;
+		  // Store user in DB.
+		  newuser.save((err) => {
+		    if (err) {
+		      console.log('error save(newuser)');
+		      return cb(err);
+		    }
+		    console.log('new user created');
+		    return cb(null, newuser);
+		  });
+		  
+		} else {
+		  console.log('user found but not using google oauth');
+		  // email found: enable google login.
+		  wuser.type.google.active = true;
+		  wuser.type.google.providerId = profile.id;
+		  wuser.type.google.accessToken = accessToken;
+		  wuser.save((err) => {
+		    if (err) {
+		      console.log('error save(wuser) -- update wuser');
+		      return cb(err);
+		    }
+		    console.log('user updated, now using google oauth');
+		    return cb(null, wuser);
+		  });
+	      }
+	      });
+	  } else {
+	    // Google user found: complete login.
+	    console.log('google user found');
+	    return cb(null, guser);
+	  }
+	}
+      );
     }
   )
 );
@@ -47,6 +101,41 @@ passport.serializeUser(function(user, cb) {
 passport.deserializeUser(function(obj, cb){
   cb(null, obj);
 });
+
+  function userFromGoogleProfile(profile) {
+    // Get account e-mail.
+    var email = null;
+    for (var i = 0; i < profile.emails.length; i++) {
+      if (profile.emails[i].type == "account") {
+	email = profile.emails[i].value;
+	break;
+      }
+    }
+
+    // Fill user fields with profile data.
+    var userobj = {
+      givenName: profile.name.givenName,
+      familyName: profile.name.familyName,
+      email: email,
+      type: {
+	web: {
+	  active: false
+	},
+	google: {
+	  active: true,
+	  providerId: profile.id,
+	  accessToken: null
+	}
+      },
+      birthdate: profile["birthday"],
+      photo: profile["photos"] ? profile["photos"][0]["value"] : null,
+      verified: true,
+      creationDate: Date.now()
+    };
+
+    // Return new User object.
+    return new User(userobj);
+  }
 
 
 module.exports = passport; 

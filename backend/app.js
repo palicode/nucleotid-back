@@ -15,7 +15,7 @@ var app = express();
 
 //Set up mongoose connection.
 var mongoose = require('mongoose');
-var mongoDB = 'mongodb://127.0.0.1:27017/nucleotid';
+var mongoDB = 'mongodb://nucleotid:nucleotid1234@127.0.0.1:27017/nucleotid';
 mongoose.connect(mongoDB, { useNewUrlParser: true });
 mongoose.Promise = global.Promise;
 var db = mongoose.connection;
