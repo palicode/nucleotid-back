@@ -1,0 +1,39 @@
+version: '2'
+services:
+  db:
+    image: postgres
+    ports:
+      - "5432:5432"
+    networks:
+      nucleotid_net:
+        ipv4_address: 192.168.100.3
+    env_file:
+      - ../info/db-env
+    volumes:
+      - ../db/data:/var/lib/postgresql/data
+      - ../info/db:/db/info
+
+  node:
+    image: node:8
+    working_dir: /app
+    command: bash -c "npm install && npm run devstart"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+    networks:
+      nucleotid_net:
+        ipv4_address: 192.168.100.2
+    volumes:
+      - ../:/app
+
+networks:
+  nucleotid_net:
+    driver: bridge
+    driver_opts:
+      com.docker.network.enable_ipv6: "false"
+    ipam:
+      driver: default
+      config:
+      - subnet: 192.168.100.0/24
+      - gateway: 192.168.100.1

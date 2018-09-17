@@ -4,30 +4,29 @@
   "description": "Lab data manager",
   "main": "index.js",
   "scripts": {
-    "start": "node ./backend/server",
-    "devstart": "nodemon ./backend/server",
-    "db": "mongod --dbpath ./db --auth",
-    "db-root": "mongod --dbpath ./db"
+    "start": "node ./src/server",
+    "devstart": "nodemon ./src/server",
+    "docker": "docker-compose -f docker/docker-compose.yml up"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ezorita/nucleotid.git"
+    "url": "git+https://github.com/palicode/nucleotid.git"
   },
   "author": "ezorita",
   "license": "GPL-3.0-or-later",
   "bugs": {
-    "url": "https://github.com/ezorita/nucleotid/issues"
+    "url": "https://github.com/palicode/nucleotid/issues"
   },
-  "homepage": "https://github.com/ezorita/nucleotid#readme",
+  "homepage": "https://github.com/palicode/nucleotid#readme",
   "dependencies": {
     "express": "^4.16.3",
     "express-session": "^1.15.6",
     "http-errors": "^1.7.0",
-    "mongoose": "^5.2.7",
     "morgan": "^1.9.0",
     "passport": "^0.4.0",
     "passport-google-oauth20": "^1.0.0",
-    "passport-local": "^1.0.0"
+    "passport-local": "^1.0.0",
+    "pg-promise": "^8.4.6"
   },
   "devDependencies": {
     "nodemon": "^1.18.3"
