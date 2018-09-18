@@ -1,25 +1,19 @@
+// Server
 var express = require('express');
 var createError = require('http-errors');
 var path = require('path');
 // Logger
 var logger = require('morgan');
+// Database
+var db = require('./modules/db');
 // Auth
 var session = require('express-session');
-var passport = require('./auth/passport-cfg');
-
+var passport = require('./modules/passport');
 // Routers.
 var indexRouter = require('./routes/index');
 
 // Initialize app.
 var app = express();
-
-//Set up mongoose connection.
-var mongoose = require('mongoose');
-var mongoDB = 'mongodb://nucleotid:nucleotid1234@127.0.0.1:27017/nucleotid';
-mongoose.connect(mongoDB, { useNewUrlParser: true });
-mongoose.Promise = global.Promise;
-var db = mongoose.connection;
-db.on('error', console.error.bind(console, 'MongoDB connection error:'));
 
 // Use middleware.
 app.use(logger('dev'));

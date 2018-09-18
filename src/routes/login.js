@@ -6,7 +6,7 @@ router.get('/', (req, res, next) => {
   if (req.isAuthenticated()) {
     res.redirect('/');
   } else {
-    res.sendFile(path.resolve('backend/static_views/login.html'), (err) => {
+    res.sendFile(path.resolve('src/static_views/login.html'), (err) => {
       if (err) {
 	console.log('error sending file: ' + err);
 	next(err);

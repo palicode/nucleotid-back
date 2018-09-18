@@ -2,13 +2,13 @@ version: '2'
 services:
   db:
     image: postgres
+    env_file:
+      - ../info/db-env
     ports:
       - "5432:5432"
     networks:
       nucleotid_net:
         ipv4_address: 192.168.100.3
-    env_file:
-      - ../info/db-env
     volumes:
       - ../db/data:/var/lib/postgresql/data
       - ../info/db:/db/info
@@ -17,6 +17,9 @@ services:
     image: node:8
     working_dir: /app
     command: bash -c "npm install && npm run devstart"
+    env_file:
+      - ../info/db-env
+      - ../info/node-env
     ports:
       - "3000:3000"
     depends_on:
