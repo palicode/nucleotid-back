@@ -9,13 +9,19 @@ router.get('/', (req, res, next) => {
     res.sendFile(path.resolve('src/static_views/login.html'), (err) => {
       if (err) {
 	console.log('error sending file: ' + err);
-	next(err);
+	return next(err);
       } else {
 	console.log('sent file.');
       }
     });
   }
 });
+
+router.post('/', passport.authenticate('local', {failureRedirect: '/login'}),
+	    (req, res) => {
+	      res.redirect('/');
+	    }
+	   );
 
 router.get('/google', passport.authenticate('google', {scope: ['email']}));
 
