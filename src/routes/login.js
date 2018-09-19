@@ -18,6 +18,7 @@ router.get('/', (req, res, next) => {
 });
 
 router.post('/', passport.authenticate('local', {failureRedirect: '/login'}),
+	   // If login suceeds this code will be executed -> Redirect to home.
 	    (req, res) => {
 	      res.redirect('/');
 	    }
@@ -25,10 +26,8 @@ router.post('/', passport.authenticate('local', {failureRedirect: '/login'}),
 
 router.get('/google', passport.authenticate('google', {scope: ['email']}));
 
-router.get('/google/return',
-	   // Mw1: if authentication failed, redirect back to /login.
-	   passport.authenticate('google', {failureRedirect: '/login'}),
-	   // Mw2: Otherwise redirect to home.
+router.get('/google/return', passport.authenticate('google', {failureRedirect: '/login'}),
+	   // If login suceeds this code will be executed -> Redirect to home.
 	   (req, res) => {
 	     res.redirect('/');
 	   }

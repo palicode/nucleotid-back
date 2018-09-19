@@ -15,36 +15,29 @@ passport.use(
     },
     // Local login function.
     async function(email, passwd, done) {
-      console.log('AUTH: local strategy');
       var user = await users.findByEmail(email);
       if (!user) {
-	console.log('AUTH-DENIED: User not found.');
-	return done(null, false);
+	return done(null, false, {message: "Incorrect e-mail or password."});
       }
 
       if (!user._data.web_active) {
 	if (user._data.google_active) {
-	  console.log('AUTH-DENIED: Web-login attempt from Google user.');
-	  return done(null, false);
+	  return done(null, false, {message: "Log in using Google credentials or create a new password."});
 	} else {
-	  console.log('AUTH-DENIED: User not verified.');
-	  return done(null, false);
+	  return done(null, false, {message: "Your e-mail address is not verified."});
 	}
       }
 
-      console.log('AUTH: User found in database.');
       const hash = crypto.createHash('sha256');
       
       // TODO: Check password < MAX_PASSWORD_LEN.
       var pwdhash = hash.update(passwd).digest('hex');
 
-      if (pwdhash == user._data.password) {
-	console.log('AUTH-SUCCESS: Password match!');
+      if (pwdhash === user._data.password) {
 	return done(null, user);
       }
 
-      console.log('AUTH-DENIED: Wrong password.');
-      return done(null, false);
+      return done(null, false, {message: "Incorrect e-mail or password."});
     }
   )
 );
@@ -97,7 +90,7 @@ passport.use(
 // maintain a persisten authentication. In production, only the
 // minimal user information (like user id) should be serialized.
 passport.serializeUser(function(user, done) {
-  done(null, user);
+  done(null, user._data.id);
 });
 
 // TODO:
@@ -105,8 +98,13 @@ passport.serializeUser(function(user, done) {
 // deserialized as described here. In production here we must
 // check the data base if the deserialized user ID exists and
 // return error otherwise.
-passport.deserializeUser(function(obj, done){
-  done(null, obj);
+passport.deserializeUser(function(userId, done){
+  try {
+    var user = await users.findById(userId);
+    done(null, user);
+  } catch(err) {
+    done(err);
+  }
 });
 
 module.exports = passport; 

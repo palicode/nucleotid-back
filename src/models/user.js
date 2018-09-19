@@ -59,7 +59,7 @@ class User {
     // Delete undefined keys and unchanged values.
     Object.keys(updates).forEach(key => {(updates[key] === undefined || updates[key] === this._data[key]) && delete updates[key];});
 
-    if (Object.keys(updates).length == 0)
+    if (Object.keys(updates).length === 0)
       return;
 
     try {
@@ -122,7 +122,23 @@ module.exports.newUser = newUser;
 
 /*
 ** FIND FUNCTIONS
-*/ 
+*/
+
+// Find user by user ID.
+async function findById(userId) {
+  try {
+    // Find by 'id'.
+    var user = await db.oneOrNone("SELECT * FROM users where id = $1", [userId]);
+
+    // Return User object.
+    return (user ? new User(user) : null);
+    
+  } catch(e) {
+    throw e;
+  }
+}
+module.exports.findByEmail = findByEmail;
+
 
 // Find user by email.
 async function findByEmail(email) {
