@@ -137,7 +137,7 @@ async function findById(userId) {
     throw e;
   }
 }
-module.exports.findByEmail = findByEmail;
+module.exports.findById = findById;
 
 
 // Find user by email.
