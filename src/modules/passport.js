@@ -98,7 +98,7 @@ passport.serializeUser(function(user, done) {
 // deserialized as described here. In production here we must
 // check the data base if the deserialized user ID exists and
 // return error otherwise.
-passport.deserializeUser(function(userId, done){
+passport.deserializeUser(async function(userId, done){
   try {
     var user = await users.findById(userId);
     done(null, user);
@@ -107,4 +107,4 @@ passport.deserializeUser(function(userId, done){
   }
 });
 
-module.exports = passport; 
+module.exports = passport;
