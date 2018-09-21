@@ -7,7 +7,7 @@ var logger = require('morgan');
 // Database
 var db = require('./modules/db');
 // Auth
-var session = require('express-session');
+//var session = require('express-session');
 var passport = require('./modules/passport');
 // Routers.
 var indexRouter = require('./routes/index');
@@ -21,9 +21,9 @@ app.use(logger('dev'));
 app.use(express.urlencoded({ extended: false }));
 // TODO:
 // Set up a session store.
-app.use(session({secret: 'keyboard cat', resave: true, saveUninitialized: true}));
+//app.use(session({secret: 'keyboard cat', resave: true, saveUninitialized: true}));
 app.use(passport.initialize());
-app.use(passport.session());
+//app.use(passport.session());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Use routes.

@@ -1,5 +1,5 @@
 {
-  "name": "nucleotid",
+  "name": "nucleotid-back",
   "version": "0.1.0",
   "description": "Lab data manager",
   "main": "index.js",
@@ -10,14 +10,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/palicode/nucleotid.git"
+    "url": "git+https://github.com/palicode/nucleotid-back.git"
   },
   "author": "ezorita",
   "license": "GPL-3.0-or-later",
   "bugs": {
-    "url": "https://github.com/palicode/nucleotid/issues"
+    "url": "https://github.com/palicode/nucleotid-back/issues"
   },
-  "homepage": "https://github.com/palicode/nucleotid#readme",
+  "homepage": "https://github.com/palicode/nucleotid-back#readme",
   "dependencies": {
     "bluebird": "^3.5.2",
     "express": "^4.16.3",
