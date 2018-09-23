@@ -38,15 +38,13 @@ module.exports.initialize = function initialize(options) {
 module.exports.newSession = (userId) => {
   
   return async (req, res, next) => {
-    res.setHeader('Content-Type', 'application/json');
     var refreshId = uuid();
 
     try {
       await db.none("INSERT INTO authsessions VALUES($1,$2,$3,$4);", [refreshId, userId, (new Date()).toISOString(), (new Date()).toISOString()]);
     } catch(err) {
       // TODO: Filter error, it may fail because refreshId is not unique (generate new uuid).
-      res.setStatus(500);
-      res.send();
+      res.status(500).end();
       return;
     }
     
@@ -55,8 +53,8 @@ module.exports.newSession = (userId) => {
       refreshToken: newToken(userId, refreshId, signature_key_refresh)
     };
 
-    res.setStatus(200);
-    res.send(JSON.stringify(tokens));
+    res.status(200);
+    res.json(tokens);
     return;
   };
   
@@ -91,20 +89,19 @@ function newToken(userId, tokenId, key) {
 
 module.exports.extendSession = () => {
   return async (req, res, next) => {
-    res.setHeader('Content-Type', 'application/json');
     // Check request header.
     var auth_header = req.header('Authentication');
     if (auth_header === undefined) {
-      res.setStatus(400);
-      res.send(JSON.stringify({err: "Missing header"}));
+      res.status(400);
+      res.json({err: "Missing header"});
       return;
     }
     
     // Extract authorization token.
     var m = auth_header.split(' ');
     if (m[0] !== "Bearer") {
-      res.setStatus(400);
-      res.send(JSON.stringify({err: "Invalid header"}));
+      res.status(400);
+      res.json({err: "Invalid header"});
       return;
     }
     var token = m[1];
@@ -113,15 +110,15 @@ module.exports.extendSession = () => {
     var data = await validateRefreshToken(token);
 
     if (!data) {
-      res.setStatus(401);
-      res.send(JSON.stringify({err: "Invalid token"}));
+      res.status(401);
+      res.json({err: "Invalid token"});
       return;
     }
 
     var last_refresh = (new Date(data.refreshed)).getTime();
     if (last_refresh + minimum_validity*60000 > Date.now()) {
-      res.setStatus(400);
-      res.send(JSON.stringify({err: "Minimum validity"}));
+      res.status(400);
+      res.json({err: "Minimum validity"});
       return;
     }
 
@@ -133,14 +130,13 @@ module.exports.extendSession = () => {
     try {
       await db.none("UPDATE authsessions SET refreshed=$1 WHERE tokenid=$2", [(new Date()).toISOString(), data.tokenid]);
     } catch (err) {
-      res.setStatus(500);
-      res.send();
+      res.status(500).end();
       return;
     }
 
     // Valid request, send new token.
-    res.setStatus(200);
-    res.send(JSON.stringify(tokens));
+    res.status(200);
+    res.json(tokens);
 
     return;
   };
