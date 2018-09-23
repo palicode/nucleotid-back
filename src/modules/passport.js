@@ -2,7 +2,7 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const LocalStrategy = require('passport-local').Strategy;
 const crypto = require('crypto');
-const db = require('../modules/db');
+const db = require('./db');
 const users = require('../models/user');
 
 // Configure local strategy.
@@ -28,12 +28,14 @@ passport.use(
 	}
       }
 
-      const hash = crypto.createHash('sha256');
-      
-      // TODO: Check password < MAX_PASSWORD_LEN.
-      var pwdhash = hash.update(passwd).digest('hex');
+      // TODO: Check password < MAX_PASSWORD_LEN before hashing.
 
-      if (pwdhash === user._data.password) {
+      // Hash query and convert both strings to Buffer.
+      const      hash = crypto.createHash('sha256');
+      var    querypwd = Buffer.from(hash.update(passwd).digest('hex'), 'utf8');
+      var  correctpwd = Buffer.grom(user._data.password, 'utf8');
+
+      if (crypto.timingSafeEqual(querypwd, correctpwd)) {
 	return done(null, user);
       }
 
@@ -49,7 +51,7 @@ passport.use(
     {
       clientID: process.env.GOOGLE_OAUTH_CLIENTID,
       clientSecret: process.env.GOOGLE_OAUTH_SECRET,
-      callbackURL: 'http://nucleotid-dev.com:3000/login/google/return'
+      callbackURL: 'https://nucleotid-dev.com/login/google/return'
     },
     // Google login function.
     async function(accessToken, refreshToken, profile, done) {
