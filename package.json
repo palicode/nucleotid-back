@@ -27,7 +27,8 @@
     "passport": "^0.4.0",
     "passport-google-oauth20": "^1.0.0",
     "passport-local": "^1.0.0",
-    "pg-promise": "^8.4.6"
+    "pg-promise": "^8.4.6",
+    "uuid": "^3.3.2"
   },
   "devDependencies": {
     "nodemon": "^1.18.3"

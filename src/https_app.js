@@ -9,6 +9,7 @@ var db = require('./modules/db');
 // Auth
 //var session = require('express-session');
 var passport = require('./modules/passport');
+var auth = require('./modules/auth');
 // Routers.
 var indexRouter = require('./routes/index');
 
@@ -22,6 +23,8 @@ app.use(express.urlencoded({ extended: false }));
 // TODO:
 // Set up a session store.
 //app.use(session({secret: 'keyboard cat', resave: true, saveUninitialized: true}));
+app.use(auth.initialize({key: 'TokenSignatureKey', db: db}));
+
 app.use(passport.initialize());
 //app.use(passport.session());
 app.use(express.static(path.join(__dirname, 'public')));

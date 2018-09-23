@@ -4,28 +4,44 @@
  * Module dependencies.
  */
 
-var app = require('./app');
+var https_app = require('./https_app');
+var http_app = require('./http_app');
 var debug = require('debug')('nucleotid:server');
 var http = require('http');
+var https = require('https');
+var fs = require('fs');
 
-/**
- * Get port from environment and store in Express.
- */
+/*
+** Create HTTP server.
+*/
 
-var port = normalizePort(process.env.PORT || '3000');
-app.set('port', port);
+var http_port = normalizePort(process.env.HTTP_PORT || '80');
+http_app.set('port', http_port);
+var http_server = http.createServer(http_app);
 
-/**
- * Create HTTP server.
- */
+http_server.listen(http_port);
+http_server.on('error', onError);
+http_server.on('listening', onListening);
 
-var server = http.createServer(app);
+/*
+** Create HTTPS server.
+*/
 
-/**
- * Listen on provided port, on all network interfaces.
- */
+var https_port = normalizePort(process.env.HTTPS_PORT || '443');
+https_app.set('port', https_port);
 
-server.listen(port);
+const ssl_options = {
+  key: fs.readFileSync('info/nucleotid-dev.key'),
+  cert: fs.readFileSync('info/nucleotid-dev.crt')
+};
+
+var server = https.createServer(ssl_options,https_app);
+
+/*
+** Listen on provided port, on all network interfaces.
+*/
+
+server.listen(https_port);
 server.on('error', onError);
 server.on('listening', onListening);
 
@@ -88,4 +104,3 @@ function onListening() {
     : 'port ' + addr.port;
   debug('Listening on ' + bind);
 }
- 
