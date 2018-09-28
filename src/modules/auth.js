@@ -24,15 +24,12 @@ module.exports.initialize = function initialize(options) {
   minimum_validity = options.min_validity || 5;
   db = options.db;
 
-  // Run asynchronous DB preparation.
-  prepareDB();
-
   return authTokenMiddleware;
 };
 
 
 /*
-** TOKEN GENERATION AND HANDLING FUNCTIONS
+** SESSION FUNCTIONS
 */
 
 module.exports.newSession = (userId) => {
@@ -41,7 +38,7 @@ module.exports.newSession = (userId) => {
     var refreshId = uuid();
 
     try {
-      await db.none("INSERT INTO authsessions VALUES($1,$2,$3,$4);", [refreshId, userId, (new Date()).toISOString(), (new Date()).toISOString()]);
+      await db.none("INSERT INTO auth.session VALUES($1,$2,$3,$4);", [refreshId, userId, (new Date()).toISOString(), (new Date()).toISOString()]);
     } catch(err) {
       // TODO: Filter error, it may fail because refreshId is not unique (generate new uuid).
       res.status(500).end();
@@ -60,32 +57,6 @@ module.exports.newSession = (userId) => {
   
 };
 
-function newToken(userId, tokenId, key) {
-  // Create token parts.
-  var headerobj = {
-    "alg": "HS256",
-    "typ": "JWT"
-  };
-
-  var dataobj = {uid: userId};
-  if (tokenId) {
-    dataobj.tokenid = tokenId;
-  } else {
-    dataobj.max_valid = Date.now() + token_validity*60000;
-    dataobj.min_valid = Date.now() + minimum_validity*60000;
-  };
-
-  // Encode token parts.
-  header = Buffer.from(JSON.stringify(headerobj),'base64');
-  data = Buffer.from(JSON.stringify(dataobj),'base64');
-
-  // Sign token.
-  const hmac = crypto.createHmac('sha256', key);
-  hmac.update(header+"."+data);
-  var signature = hmac.digest('base64');
-
-  return header + "." + data + "." + signature;
-}
 
 module.exports.extendSession = () => {
   return async (req, res, next) => {
@@ -128,7 +99,7 @@ module.exports.extendSession = () => {
 
     // Update refreshed timestamp.
     try {
-      await db.none("UPDATE authsessions SET refreshed=$1 WHERE tokenid=$2", [(new Date()).toISOString(), data.tokenid]);
+      await db.none("UPDATE auth.session SET refreshed=$1 WHERE tokenid=$2", [(new Date()).toISOString(), data.tokenid]);
     } catch (err) {
       res.status(500).end();
       return;
@@ -142,21 +113,66 @@ module.exports.extendSession = () => {
   };
 };
 
-module.exports.revokeToken = async function revokeToken(tokenId) {
-  try {
-    await db.none("DELETE FROM authsessions WHERE tokenid=$1", [tokenId]);
-  } catch(err) {
-    throw err;
-  }
+
+module.exports.logout = () => {
+  return async (req,res,next) => {
+    // Check request header.
+    var auth_header = req.header('Authentication');
+    if (auth_header === undefined) {
+      res.status(400);
+      res.json({err: "Missing header"});
+      return;
+    }
+    
+    // Extract authorization token.
+    var m = auth_header.split(' ');
+    if (m[0] !== "Bearer") {
+      res.status(400);
+      res.json({err: "Invalid header"});
+      return;
+    }
+    var token = m[1];
+
+    // Validate token.
+    var data = await validateRefreshToken(token);
+
+    if (!data) {
+      res.status(401);
+      res.json({err: "Invalid token"});
+      return;
+    }
+
+    try {
+      await db.none("DELETE FROM auth.session WHERE tokenid=$1", [data.tokenid]);
+    } catch(err) {
+      res.status(500);
+      res.end();
+    }
+
+    res.status(200);
+    res.end();
+  };
 };
 
-module.exports.revokeAllUserTokens = async function revokeAllUserTokens(userId) {
-  try {
-    await db.none("DELETE FROM authsessions WHERE userid=$1", [userId]);
-  } catch(err) {
-    throw err;
-  }
+
+module.exports.endSessions = () => {
+  return async (req,res,next) => {
+
+    // Check if user bears a valid token.
+    if (!req.auth.validToken) {
+      res.status(401);
+      res.end();
+    }
+
+    // Then revoke all refresh tokens.
+    try {
+      await db.none("DELETE FROM auth.session WHERE userid=$1", [userId]);
+    } catch(err) {
+      throw err;
+    }
+  };
 };
+
 
 /*
 ** AUTHORIZATION MIDDLEWARE
@@ -179,20 +195,54 @@ function authTokenMiddleware(req, res, next) {
   if (m[0] !== "Bearer") {
     return next();
   }
-  var token = m[1];
+  var token64 = m[1];
 
   // Validate token.
-  var data = validateAccessToken(token);
+  var token = validateAccessToken(token64);
 
-  if (!data) {
+  if (!token) {
     return next();
   }
 
   req.auth.validToken = true;
-  req.auth.data = data;
+  req.auth.token = token;
 
   return next();
 }
+
+
+/*
+** TOKEN FUNCTIONS
+*/
+
+function newToken(userId, tokenId, key) {
+  // Create token parts.
+  var headerobj = {
+    "alg": "HS256",
+    "typ": "JWT"
+  };
+
+  var dataobj = {uid: userId};
+  if (tokenId) {
+    dataobj.tokenid = tokenId;
+  } else {
+    dataobj.max_valid = Date.now() + token_validity*60000;
+    dataobj.min_valid = Date.now() + minimum_validity*60000;
+  };
+
+  // Encode token parts.
+  header = Buffer.from(JSON.stringify(headerobj),'base64');
+  data = Buffer.from(JSON.stringify(dataobj),'base64');
+
+  // Sign token.
+  const hmac = crypto.createHmac('sha256', key);
+  hmac.update(header+"."+data);
+  var signature = hmac.digest('base64');
+
+  return header + "." + data + "." + signature;
+}
+
+
 
 function decodeToken(token) {
   // JWT must contain 3 parts separated by '.'
@@ -217,6 +267,7 @@ function decodeToken(token) {
     signature: parts[2]
   };
 }
+
 
 function validateAccessToken(token64) {
   // Decode token.
@@ -249,11 +300,12 @@ function validateAccessToken(token64) {
   var bearer_signature = Buffer.from(token.signature, 'base64');
  
   if (crypto.timingSafeEqual(computed_signature, bearer_signature)) {
-    return data;
+    return token;
   } else {
     return null;
   }
 }
+
 
 async function validateRefreshToken(token64) {
   // Decode token.
@@ -287,7 +339,7 @@ async function validateRefreshToken(token64) {
 
   // Now check if token is still valid.
   try {
-    var data = await db.oneOrNone("SELECT * FROM authsessions WHERE tokenid=$1", [token.payload.tokenid]);
+    var data = await db.oneOrNone("SELECT * FROM auth.session WHERE tokenid=$1", [token.payload.tokenid]);
   } catch (err) {
     throw err;
   }
@@ -301,25 +353,24 @@ async function validateRefreshToken(token64) {
 }
 
 
-
 /*
 ** DATABASE
 */
 
-var createTableQuery = "CREATE TABLE IF NOT EXISTS authsessions (\
+var createTableQuery = "CREATE TABLE IF NOT EXISTS auth.session (\
   tokenid varchar(512) PRIMARY KEY,\
-  userid bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,\
+  userid bigint NOT NULL REFERENCES user(id) ON DELETE CASCADE,\
   issued timestamptz NOT NULL,\
   refreshed timestamptz NOT NULL\
 );";
 
-var createIndexQuery = "CREATE UNIQUE INDEX IF NOT EXISTS token_userid ON authsessions(userid);";
+var createIndexQuery = "CREATE UNIQUE INDEX IF NOT EXISTS token_userid ON auth.session(userid);";
 
-async function prepareDB() {
+module.exports.createDBTables = async (db) => {
   try {
     await db.none(createTableQuery);
     await db.none(createIndexQuery);
   } catch(err) {
     console.log(err);
   }
-}
+};
