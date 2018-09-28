@@ -1,4 +1,5 @@
-var   db = require('../modules/db');
+var pqsl = require('../modules/db');
+var   db = psql.db;
 var  pgp = db.$config.pgp;
 
 
@@ -17,8 +18,8 @@ const userCols = new pgp.helpers.ColumnSet(
    'google_active',
    'google_id',
    'google_accesstoken',
-   'creation_date'],
-  {table: 'users'}
+   'created'],
+  {table: psql.table_user}
 );
 
 
@@ -45,7 +46,7 @@ class User {
       google_active:        obj['google_active'],
       google_id:            obj['google_id'],
       google_accesstoken:   obj['google_accesstoken'],
-      creation_date:        obj['creation_date']
+      created:              obj['created']
     };
     
     return data;
@@ -128,7 +129,7 @@ module.exports.newUser = newUser;
 async function findById(userId) {
   try {
     // Find by 'id'.
-    var user = await db.oneOrNone("SELECT * FROM users where id = $1", [userId]);
+    var user = await db.oneOrNone("SELECT * FROM $1 where id = $2", [psql.table_user, userId]);
 
     // Return User object.
     return (user ? new User(user) : null);
@@ -144,7 +145,7 @@ module.exports.findById = findById;
 async function findByEmail(email) {
   try {
     // Find by 'email'.
-    var user = await db.oneOrNone("SELECT * FROM users where email = $1", [email]);
+    var user = await db.oneOrNone("SELECT * FROM $1 where email = $2", [psql.table_user, email]);
 
     // Return User object.
     return (user ? new User(user) : null);
@@ -160,7 +161,7 @@ module.exports.findByEmail = findByEmail;
 async function findByGoogleId(providerId) {
   try {
     // Find by 'google_providerId'.
-    var user = await db.oneOrNone("SELECT * FROM users where google_id = $1", [providerId]);
+    var user = await db.oneOrNone("SELECT * FROM $1 where google_id = $2", [psql.table_user, providerId]);
 
     // Return User object.
     return (user ? new User(user) : null);
