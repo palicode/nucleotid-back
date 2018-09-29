@@ -5,34 +5,51 @@ var path = require('path');
 // Logger
 var logger = require('morgan');
 // Database
-var db = require('./modules/db');
+var psql = require('./modules/db');
 // Auth
 //var session = require('express-session');
 var passport = require('./modules/passport');
 var auth = require('./modules/auth');
 // Routers.
 var indexRouter = require('./routes/index');
+// Cross Origin Resourse Sharing
+var cors = require('./modules/cors');
+cors.defaults({
+  origins: ["https://www.nucleotid.com", "https://nucleotid.com", "https://nucleotid-dev.com"],
+  methods: ["GET"],
+  headers: ["Authentication"]
+});
+
+// Initialize DB. (TODO: Disable in production)
+psql.createDBTables();
+auth.createDBTables(psql.db);
 
 // Initialize app.
 var app = express();
 
 // Use middleware.
 app.use(logger('dev'));
-//app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-// TODO:
-// Set up a session store.
-//app.use(session({secret: 'keyboard cat', resave: true, saveUninitialized: true}));
-app.use(auth.initialize({key: 'TokenSignatureKey', db: db}));
-
+app.use(express.json());
+app.use(auth.initialize({key: 'TokenSignatureKey', db: psql.db}));
 app.use(passport.initialize());
-//app.use(passport.session());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Use routes.
-app.use('/', require('./routes/index'));
-app.use('/login', require('./routes/login'));
 
+// This route will be deleted when the app has a working react frontend.
+app.use('/', require('./routes/index'));
+// End of delete.
+app.use('/auth', require('./routes/auth'));
+app.use('/notebook', require('./routes/notebook'));
+
+/*
+app.use('/user', require('./routes/user'));
+app.use('/protocol', require('./routes/protocol'));
+app.use('/dataset', require('./routes/dataset'));
+app.use('/notebook', require('./routes/notebook'));
+app.use('/pipeline', require('./routes/pipeline'));
+*/
 
 // Catch 404 and forward to error handler.
 /*
