@@ -1,3 +1,4 @@
+const log = require('./logger').logmodule(module);
 var def_origins;
 var def_methods;
 var def_headers;
@@ -44,21 +45,21 @@ module.exports.defaults = (options) => {
 
 module.exports.cors = (options) => {
   // Set origins.
-  var origins = options.origins;
+  var origins = options && options.origins;
   if (origins && origins.constructor !== Array) origins = new Array(origins);
-  if (!origins) origins = origins_def;
+  if (!origins) origins = def_origins;
   // Set methods.
-  var methods = options.methods;
+  var methods = options && options.methods;
   if (methods && methods.constructor !== Array) methods = new Array(methods);
-  if (!methods) methods = methods_def;
+  if (!methods) methods = def_methods;
   else {
     // Filter non-valid methods.
-    methods = methods.filter(metehod => {return method_names.indexOf(method) !== -1;});
+    methods = methods.filter(method => {return method_names.indexOf(method) !== -1;});
   }
   // Set headers.
-  var headers = options.headers;
+  var headers = options && options.headers;
   if (headers && headers.constructor !== Array) headers = new Array(headers);
-  if (!headers) headers = headers_def;
+  if (!headers) headers = def_headers;
   
   return (req, res, next) => {
     // Check origins.
@@ -66,6 +67,7 @@ module.exports.cors = (options) => {
     // Assume that missing Origin header means same-origin.
     if (origin_header && origins) {
       if (origins.indexOf(origin_header) === -1) {
+	
 	res.status(403); // Forbidden
 	return res.end();
       }
@@ -74,15 +76,15 @@ module.exports.cors = (options) => {
     res.set('Access-Control-Allow-Origin', origins ? origin_header : '*');
 
     // Respond PREFLIGHT request.
-    if (req.method() === "OPTIONS") {
+    if (req.method === "OPTIONS") {
       res.set('Access-Control-Allow-Methods', methods.join(', '));
       res.set('Access-Control-Max-Age', preflight_max_age.toString());
       if (headers) res.set('Access-Control-Allow-Headers', headers.join(', '));
       res.status(200);
-      return res.end();pp
+      return res.end();
     }
     // Check if requested method is allowed.
-    else if (methods.indexOf(req.method()) === -1) {
+    if (methods.indexOf(req.method) === -1) {
       res.status(405); // Method not allowed.
       return res.end();
     }
