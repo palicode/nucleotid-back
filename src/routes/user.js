@@ -4,7 +4,7 @@ var cors = require('../modules/cors').cors;
 
 // CORS middleware
 router.all('/', cors({methods: ["POST"]}));
-router.all('/:userId([0-9]+)', cors({methods: ["GET","UPDATE","DELETE"]}));
+router.all('/:userId([0-9]+)', cors({methods: ["GET","PATCH","DELETE"]}));
 router.all('/:userId([0-9]+)/teams', cors());
 router.all('/:userId([0-9]+)/projects', cors());
 router.all('/:userId([0-9]+)/projects/shared', cors());
@@ -22,8 +22,10 @@ router.get('/:userId([0-9]+)/projects', userController.getUserProjects);
 router.get('/:userId([0-9]+)/projects/shared', userController.getUserSharedProjects);
 router.get('/:userId([0-9]+)/notebooks', userController.getUserNotebooks);
 
-// UPDATE Routes
-router.update('/:userId([0-9]+)', userController.updateUser);
+// PATCH Routes
+router.patch('/:userId([0-9]+)', userController.updateUser);
 
 // DELETE Routes
 router.delete('/:userId([0-9]+)', userController.deleteUser);
+
+module.exports = router;
