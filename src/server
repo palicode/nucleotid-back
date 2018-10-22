@@ -1,40 +1,77 @@
 #!/usr/bin/env node
 
-/**
- * Module dependencies.
- */
+const log   = require('./modules/logger').logmodule(module);
 
-var https_app = require('./https_app');
-var debug = require('debug')('nucleotid:server');
-var http = require('http');
-var https = require('https');
-var fs = require('fs');
+var server;
+
+run_server();
+
+async function run_server() {
+  
+  log.info('checking server dependencies before startup...');
+  
+  // Check database connection.
+  const psql = require('./modules/db');
+  try {
+    var obj = await psql.db.connect();
+  } catch (err) {
+    log.error(`db connection failed: ${err}`);
+    process.exit(1);
+  }
+  log.info(`db connection successful`);
+  obj.done();
+
+  // Create DB tables if not in production.
+  if (process.env.NODE_ENV !== 'production') {
+    try {
+      await psql.createDBTables();
+    } catch (err) {
+      log.error(`error creating DB tables: ${err}`);
+      process.exit(1);
+    }
+    log.info('db tables created successfully');
+  }
+
+  // When all checks are passed, start the server.
+  start_server();
+}
+
+function start_server () {
+  /*
+  ** Module dependencies.
+  */
+
+  var https_app = require('./https_app');
+  var https = require('https');
+  var fs = require('fs');
+  var config = require('../config')[process.env.NODE_ENV || 'dev'];
+
+  /*
+  ** Create HTTPS server.
+  */
+  log.info(`starting https server...`);
+  var https_port = normalizePort(config.https_port || '443');
+  https_app.set('port', https_port);
+
+  const ssl_options = {
+    key: fs.readFileSync('info/nucleotid-dev.key'),
+    cert: fs.readFileSync('info/nucleotid-dev.crt')
+  };
+
+  server = https.createServer(ssl_options,https_app);
+
+  /*
+  ** Listen on provided port, on all network interfaces.
+  */
+
+  server.listen(https_port);
+  server.on('error', onError);
+  server.on('listening', onListening);
+}
 
 /*
-** Create HTTPS server.
-*/
-
-var https_port = normalizePort(process.env.HTTPS_PORT || '443');
-https_app.set('port', https_port);
-
-const ssl_options = {
-  key: fs.readFileSync('info/nucleotid-dev.key'),
-  cert: fs.readFileSync('info/nucleotid-dev.crt')
-};
-
-var server = https.createServer(ssl_options,https_app);
-
-/*
-** Listen on provided port, on all network interfaces.
-*/
-
-server.listen(https_port);
-server.on('error', onError);
-server.on('listening', onListening);
-
-/**
- * Normalize a port into a number, string, or false.
- */
+** Normalize a port into a number, string, or false.
+**/
 
 function normalizePort(val) {
   var port = parseInt(val, 10);
@@ -61,18 +98,18 @@ function onError(error) {
     throw error;
   }
 
-  var bind = typeof port === 'string'
-    ? 'Pipe ' + port
-    : 'Port ' + port;
+  var bind = typeof https_port === 'string'
+    ? 'Pipe ' + https_port
+    : 'Port ' + https_port;
 
   // handle specific listen errors with friendly messages
   switch (error.code) {
     case 'EACCES':
-      console.error(bind + ' requires elevated privileges');
+      log.error(bind + ' requires elevated privileges');
       process.exit(1);
       break;
     case 'EADDRINUSE':
-      console.error(bind + ' is already in use');
+      log.error(bind + ' is already in use');
       process.exit(1);
       break;
     default:
@@ -89,5 +126,5 @@ function onListening() {
   var bind = typeof addr === 'string'
     ? 'pipe ' + addr
     : 'port ' + addr.port;
-  debug('Listening on ' + bind);
+  log.info(`server listening on ${bind}`);
 }

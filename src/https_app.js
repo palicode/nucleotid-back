@@ -1,55 +1,52 @@
-// Server
-var express = require('express');
+var express     = require('express');
 var createError = require('http-errors');
-var path = require('path');
-// Logger
-var logger = require('morgan');
-// Database
-var psql = require('./modules/db');
-// Auth
-//var session = require('express-session');
-var passport = require('./modules/passport');
-var auth = require('./modules/auth');
-// Routers.
+var path        = require('path');
+var morgan      = require('morgan');
+var log         = require('./modules/logger').logmodule(module);
+var psql        = require('./modules/db');
+var passport    = require('./modules/passport');
+var oauth       = require('./modules/oauth');
+var cors        = require('./modules/cors');
+var mailer      = require('./modules/mailer');
+var config      = require('../config.js')[process.env.NODE_ENV || "dev"];
+
+// Routers
 var indexRouter = require('./routes/index');
-// Cross Origin Resourse Sharing
-var cors = require('./modules/cors');
-cors.defaults({
-  origins: ["https://www.nucleotid.com", "https://nucleotid.com", "https://nucleotid-dev.com"],
+
+log.info(`HTTPS API (NODE_ENV = ${process.env.NODE_ENV})`);
+
+// Configure CORS.
+var cors_options = {
+  origins: config.cors_origins,
   methods: ["GET"],
   headers: ["Authentication"]
-});
+};
+log.info('initialize CORS: ', cors_options);
+cors.defaults(cors_options);
 
-// Initialize DB. (TODO: Disable in production)
-psql.createDBTables();
-auth.createDBTables(psql.db);
+// Initialize mailer.
+log.info('initialize mailer module with address: ' + process.env.NUCLEOTID_MAILER_ADDRESS);
+mailer.initialize({email: process.env.NUCLEOTID_MAILER_ADDRESS,
+		   password: process.env.NUCLEOTID_MAILER_PASSWORD});
 
 // Initialize app.
+log.info(`initialize express app`);
 var app = express();
-
-// Use middleware.
-app.use(logger('dev'));
+// Set middleware.
+app.use(morgan('dev'));
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
-app.use(auth.initialize({key: 'TokenSignatureKey', db: psql.db}));
+app.use(oauth.initialize({key: process.env.NUCLEOTID_OAUTH_SIGNATURE_SECRET || 'AuthSignatureSecret', db: psql.db}));
 app.use(passport.initialize());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Use routes.
 
 // This route will be deleted when the app has a working react frontend.
-app.use('/', require('./routes/index'));
+//app.use('/', require('./routes/index'));
 // End of delete.
-app.use('/auth', require('./routes/auth'));
-app.use('/notebook', require('./routes/notebook'));
-
-/*
+log.info('register route: /user');
 app.use('/user', require('./routes/user'));
-app.use('/protocol', require('./routes/protocol'));
-app.use('/dataset', require('./routes/dataset'));
-app.use('/notebook', require('./routes/notebook'));
-app.use('/pipeline', require('./routes/pipeline'));
-*/
 
 // Catch 404 and forward to error handler.
 /*
