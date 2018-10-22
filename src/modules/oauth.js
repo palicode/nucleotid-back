@@ -38,7 +38,7 @@ module.exports.newSession = (userId) => {
     var refreshId = uuid();
 
     try {
-      await db.none("INSERT INTO auth.session VALUES($1,$2,$3,$4);", [refreshId, userId, (new Date()).toISOString(), (new Date()).toISOString()]);
+      await db.none("INSERT INTO auth_session VALUES($1,$2,$3,$4);", [refreshId, userId, (new Date()).toISOString(), (new Date()).toISOString()]);
     } catch(err) {
       // TODO: Filter error, it may fail because refreshId is not unique (generate new uuid).
       res.status(500).end();
@@ -99,7 +99,7 @@ module.exports.extendSession = () => {
 
     // Update refreshed timestamp.
     try {
-      await db.none("UPDATE auth.session SET refreshed=$1 WHERE tokenid=$2", [(new Date()).toISOString(), data.tokenid]);
+      await db.none("UPDATE auth_session SET refreshed=$1 WHERE tokenid=$2", [(new Date()).toISOString(), data.tokenid]);
     } catch (err) {
       res.status(500).end();
       return;
@@ -143,7 +143,7 @@ module.exports.logout = () => {
     }
 
     try {
-      await db.none("DELETE FROM auth.session WHERE tokenid=$1", [data.tokenid]);
+      await db.none("DELETE FROM auth_session WHERE tokenid=$1", [data.tokenid]);
     } catch(err) {
       res.status(500);
       res.end();
@@ -166,7 +166,7 @@ module.exports.endSessions = () => {
 
     // Then revoke all refresh tokens.
     try {
-      await db.none("DELETE FROM auth.session WHERE userid=$1", [userId]);
+      await db.none("DELETE FROM auth_session WHERE userid=$1", [userId]);
     } catch(err) {
       throw err;
     }
@@ -339,7 +339,7 @@ async function validateRefreshToken(token64) {
 
   // Now check if token is still valid.
   try {
-    var data = await db.oneOrNone("SELECT * FROM auth.session WHERE tokenid=$1", [token.payload.tokenid]);
+    var data = await db.oneOrNone("SELECT * FROM auth_session WHERE tokenid=$1", [token.payload.tokenid]);
   } catch (err) {
     throw err;
   }
@@ -351,26 +351,3 @@ async function validateRefreshToken(token64) {
 
   return data;
 }
-
-
-/*
-** DATABASE
-*/
-
-var createTableQuery = "CREATE TABLE IF NOT EXISTS auth.session (\
-  tokenid varchar(512) PRIMARY KEY,\
-  userid bigint NOT NULL REFERENCES user(id) ON DELETE CASCADE,\
-  issued timestamptz NOT NULL,\
-  refreshed timestamptz NOT NULL\
-);";
-
-var createIndexQuery = "CREATE UNIQUE INDEX IF NOT EXISTS token_userid ON auth.session(userid);";
-
-module.exports.createDBTables = async (db) => {
-  try {
-    await db.none(createTableQuery);
-    await db.none(createIndexQuery);
-  } catch(err) {
-    console.log(err);
-  }
-};
