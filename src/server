@@ -5,23 +5,10 @@
  */
 
 var https_app = require('./https_app');
-var http_app = require('./http_app');
 var debug = require('debug')('nucleotid:server');
 var http = require('http');
 var https = require('https');
 var fs = require('fs');
-
-/*
-** Create HTTP server.
-*/
-
-var http_port = normalizePort(process.env.HTTP_PORT || '80');
-http_app.set('port', http_port);
-var http_server = http.createServer(http_app);
-
-http_server.listen(http_port);
-http_server.on('error', onError);
-http_server.on('listening', onListening);
 
 /*
 ** Create HTTPS server.
