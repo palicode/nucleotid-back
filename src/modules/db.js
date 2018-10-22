@@ -1,4 +1,6 @@
 const promise = require('bluebird');
+const log     = require('./logger').logmodule(module);
+const config  = require('../../config')[process.env.NODE_ENV || 'dev'];
 
 // Initialization options
 const initOptions = {
@@ -6,27 +8,19 @@ const initOptions = {
 };
 
 // Set up DB connection.
-const connectionOptions = {
-  host: process.env.NUCLEOTID_DB_HOST,
+const conn = {
+  host: config.database_host,
   port: 5432,
-  database: process.env.POSTGRES_DB,
+  database: config.database_name,
   user: process.env.POSTGRES_USER,
   password: process.env.POSTGRES_PASSWORD
 };
 
+log.info(`database options (host: ${conn.host}:${conn.port}, database: ${conn.database})`);
+
 // Require Database
 const pgp = require('pg-promise')(initOptions);
-const db = pgp(connectionOptions);
-
-// Test connection.
-db.connect()
-  .then(obj => {
-    console.log('Connection to DB: SUCCESS.');
-    obj.done(); // success, release the connection;
-  })
-  .catch(error => {
-    console.log('ERROR:', error.message || error);
-  });
+const db = pgp(conn);
 
 module.exports.db = db;
 
@@ -61,13 +55,6 @@ var tables = [
   "CREATE TABLE IF NOT EXISTS password_blacklist (\
        text                varchar(30)  PRIMARY KEY\
   );",
-  "CREATE TABLE IF NOT EXISTS email_token (\
-       token               varchar(256) PRIMARY KEY,\
-       user_id             bigint       NOT NULL REFERENCES user_profile(id) ON DELETE CASCADE,\
-       validated           boolean      NOT NULL,\
-       created             timestamptz  NOT NULL,\
-       modified            timestamptz\
-  );",
   "CREATE TABLE IF NOT EXISTS user_profile (\
        id    	    	   bigserial	PRIMARY KEY,\
        given_name    	   varchar(50) 	NOT NULL,\
@@ -83,24 +70,28 @@ var tables = [
        created 		   timestamptz 	NOT NULL,\
        UNIQUE(email)\
    );",
+    "CREATE TABLE IF NOT EXISTS email_token (\
+       token               varchar(256) PRIMARY KEY,\
+       user_id             bigint       NOT NULL REFERENCES user_profile(id) ON DELETE CASCADE,\
+       validated           boolean      NOT NULL,\
+       created             timestamptz  NOT NULL,\
+       modified            timestamptz\
+  );",
   "CREATE TABLE IF NOT EXISTS team_profile (\
        id    	    bigserial    PRIMARY KEY,\
        team_name    varchar(100) NOT NULL,\
        ownerId	    bigint 	 NOT NULL REFERENCES user_profile(id) ON DELETE SET NULL,\
        personal     boolean      NOT NULL,\
-       created	    timestamptz  NOT NULL,\
-       UNIQUE (ownerId, personal) WHERE personal=TRUE\
+       created	    timestamptz  NOT NULL\
    );",
-  "CREATE UNIQUE INDEX ON team_profile (ownerId, personal) WHERE personal = TRUE;",
+  "CREATE UNIQUE INDEX IF NOT EXISTS personal_team_index ON team_profile (ownerId, personal) WHERE personal = TRUE;",
   "CREATE TABLE IF NOT EXISTS team_permissions (\
        userId	    bigint       NOT NULL REFERENCES user_profile(id) ON DELETE CASCADE,\
        teamId	    bigint 	 NOT NULL REFERENCES team_profile(id) ON DELETE CASCADE,\
        read         boolean      NOT NULL DEFAULT FALSE,\
        write        boolean      NOT NULL DEFAULT FALSE,\
-       create       boolean      NOT NULL DEFAULT FALSE,\
-       delete       boolean      NOT NULL DEFAULT FALSE,\
        admin        boolean      NOT NULL DEFAULT FALSE,\
-       created	    timtestamptz NOT NULL,\
+       created	    timestamptz  NOT NULL,\
        UNIQUE (userId, teamId)\
    );",
   "CREATE TABLE IF NOT EXISTS project (\
@@ -119,12 +110,12 @@ var tables = [
        read         boolean      NOT NULL DEFAULT FALSE,\
        write        boolean      NOT NULL DEFAULT FALSE,\
        admin        boolean      NOT NULL DEFAULT FALSE,\
-       created	    timtestamptz NOT NULL,\
+       created	    timestamptz  NOT NULL,\
        UNIQUE (userId, projectId)\
    );",
   "CREATE TABLE IF NOT EXISTS notebook (\
-       id    	    bigserial   PRIMARY KEY,\
-       title 	    vachar(250) NOT NULL,\
+       id    	    bigserial    PRIMARY KEY,\
+       title 	    varchar(250) NOT NULL,\
        description  text,\
        ownerId 	    bigint 	NOT NULL REFERENCES user_profile(id) ON DELETE CASCADE,\
        projectId    bigint      NOT NULL REFERENCES project(id) ON DELETE CASCADE,\
@@ -134,15 +125,22 @@ var tables = [
    );",
   "CREATE TABLE IF NOT EXISTS notebook_step (\
        notebookId   bigint 	 NOT NULL REFERENCES notebook(id) ON DELETE CASCADE,\
-       order        int          NOT NULL,\
+       location     int          NOT NULL,\
        title 	    varchar(250) NOT NULL,\
        description  text 	 NOT NULL,\
        format 	    varchar(50),\
-       body	    text\
+       body	    text,\
        created 	    timestamptz NOT NULL,\
        modified     timestamptz NOT NULL,\
-       PRIMARY KEY (notebookId, order)\
-   );"
+       PRIMARY KEY (notebookId, location)\
+   );",
+  "CREATE TABLE IF NOT EXISTS auth_session (\
+       tokenid      varchar(512)  PRIMARY KEY,\
+       userid       bigint        NOT NULL REFERENCES user_profile(id) ON DELETE CASCADE,\
+       issued       timestamptz   NOT NULL,\
+       refreshed    timestamptz   NOT NULL\
+   );",
+  "CREATE UNIQUE INDEX IF NOT EXISTS token_userid ON auth_session(userid);"
 ];
 
 module.exports.createDBTables = async () => {
@@ -150,7 +148,7 @@ module.exports.createDBTables = async () => {
     for (var i = 0; i < tables.length; i++) {
       await db.none(tables[i]);
     }
-  } catch(err) {
-    console.log(err);
+  } catch (err) {
+    throw err;
   }
 };
