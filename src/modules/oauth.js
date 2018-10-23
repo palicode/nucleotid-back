@@ -205,11 +205,11 @@ module.exports.endSessions = () => {
     // revokeAllSessions
     // Deletes all session records for userid from the database.
     try {
-      var uids = await db.none("DELETE FROM $1~\
-                                WHERE userid=$1",
-			       [psql.table_auth_session,
-				req.auth.userid]
-			      );
+      await db.none("DELETE FROM $1~\
+                     WHERE userid=$1",
+		    [psql.table_auth_session,
+		     req.auth.userid]
+		   );
     } catch(err) {
       log.error(`endSessions(revokeAllSessions) 500 - database error: ${err}`);
       return res.status(500).end();
