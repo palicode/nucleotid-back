@@ -9,6 +9,10 @@ const db     = psql.db;
 const log    = require('../modules/logger').logmodule(module);
 
 
+// Some parameters
+const passwd_opts = {min_len: 6, max_len: 30};
+const email_opts  = {max_len: 50};
+
 // CREATE - POST Routes
 
 // CreateWebUser
@@ -277,19 +281,96 @@ module.exports.deleteUser = async (req, res, next) => {
   res.send(404);
 };
 
-// VALIDATOR MIDDLEWARE
+/*
+** Aux Middleware
+*/
+
+// validateCredentials
+// Validates email and password.
+module.exports.validateCredentials = async (req, res, next) => {
+  log.log('debug', `validateCredentials(${req.method}) credentials: ${JSON.stringify(req.body)}`);
+
+  // checkBodyData
+  // Checks the body data.
+  if (!req.body.email || !req.body.password) {
+    let e = {error: "insufficient authentication data"};
+    log.info(`validateCredentials(checkBodyData) 400 - ${e.error}`);
+    return res.status(400).json(e);
+  }
+
+  // checkEmailFormat
+  // If the email format is wrong, it is guaranteed to fail.
+  if(!validator.isLength(req.body.email, {max: passwd_opts.max_len}) || !validator.isEmail(req.body.email)) {
+    let e = {error: "authentication failed"};
+    log.info(`validateCredentials(checkEmailFormat) 401 - ${e.error}`);
+    return res.status(401).json(e);
+  }
+
+  // checkPasswordFormat
+  // If the password does not satisfy the requirements it is guaranteed to fail.
+  if (!validator.isLength(req.body.password, {min: passwd_opts.min_len, max: passwd_opts.max_len})) {
+    let e = {error: "authentication failed"};
+    log.info(`validateCredentials(checkPasswordFormat) 401 - ${e.error}`);
+    return res.status(401).json(e);
+  }
+
+  // findUser
+  // Get user from database.
+  try {
+    var user = await db.oneOrNone("SELECT id, email, password FROM $1~ WHERE email=$2",
+				  [psql.table_user,
+				  req.body.email]);
+  } catch (err) {
+    log.error(`validateCredentials(findUser) 500 - database error: ${err}`);
+    return res.status(500).end();
+  }
+
+  if (!user) {
+    let e = {error: "authentication failed"};
+    log.info(`validateCredentials(findUser) 401 - ${e.error}`);
+    return res.status(401).json(e);
+  }
+
+  // validatePassword
+  // Hashes provided password and compares with user_profile(pasword).
+  const hash = crypto.createHash('SHA512');
+  hash.update(req.body.password);
+  const hashpass = hash.digest('hex');
+
+  if (user.password !== hashpass) {
+    let e = {error: "authentication failed"};
+    log.info(`validateCredentials(validatePassword) 401 - ${e.error}`);
+    return res.status(401).json(e);
+  }
+
+  req.user = user;
+
+  // Authentication successful. Next middleware.
+  return next();
+};
+
+
+/*
+** Validation Middleware
+*/
+
 function isValidDate(d) {
   return d instanceof Date && !isNaN(d);
 }
 
+// validateNewUser
+// Validates data for newUser requests.
 module.exports.validateNewUser = async (req, res, next) => {
   log.log('debug', `validateNewUser(POST): ${JSON.stringify(req.body)}`);
-  // email: email
-  if (!validator.isLength(req.body.email, {max:50}) || !validator.isEmail(req.body.email)) {
+
+  // validateEmail
+  // email: email format
+  if (!validator.isLength(req.body.email, {max: email_opts.max_len}) || !validator.isEmail(req.body.email)) {
     log.info(`validateNewUser(validateEmail) 400 - invalid email format: ${req.body.email}`);
     return res.status(400).json({"error": "invalid email format"});
   }
-  
+
+  // validateGivenName
   // given_name: unicode single word, max 20 char
   if (!validator.isLength(req.body.given_name, {max:20}) ||
       !re.unicodeWord(req.body.given_name)) {
@@ -297,6 +378,7 @@ module.exports.validateNewUser = async (req, res, next) => {
     return res.status(400).json({"error": "invalid given_name format"});
   }
 
+  // validateFamilyName
   // family_name: unicode multiple words, max 50 char, max 3 words
   if (!re.unicodeWords(req.body.family_name, '-') ||
       !validator.isLength(req.body.family_name, {max:50}) ||
@@ -305,12 +387,15 @@ module.exports.validateNewUser = async (req, res, next) => {
     return res.status(400).json({"error": "invalid family_name format"});
   }
 
-    // password: min len 6, not blacklisted
-  if (!validator.isLength(req.body.password, {min:6})) {
+  // validatePassword
+  // password: min len 6
+  if (!validator.isLength(req.body.password, {min: passwd_opts.min_len, max: passwd_opts.max_len})) {
     log.info(`validateNewUser(validatePassword) 400 - invalid password format: ${req.body.password}`);
     return res.status(400).json({"error": "invalid password format"});
   }
 
+  // validatePasswordBlacklist
+  // password must not be in blacklisted database.
   try {
     var blacklist = await db.oneOrNone('SELECT password FROM $1~ WHERE password=$2',
 				       [psql.table_password_blacklist,
@@ -333,6 +418,7 @@ module.exports.validateNewUser = async (req, res, next) => {
     password: req.body.password
   };
 
+  // validateBirthdate
   // birthdate: any format accepted by Date, no later than today, not before 150 years ago.
   if (req.body.birthdate) {
     var bd = new Date(req.body.birthdate);
@@ -352,6 +438,8 @@ module.exports.validateNewUser = async (req, res, next) => {
     req.newuser.birthdate = bd;
   }
 
+  // Next middleware.
+  log.info(`validateNewUser() next`);
   return next();
 };
 
