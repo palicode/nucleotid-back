@@ -6,6 +6,7 @@ const uuid   = require('uuid/v4');
 const config = require('../../config')[process.env.NODE_ENV || 'dev'];
 const validator = require('validator');
 const db     = psql.db;
+const log    = require('../modules/logger').logmodule(module);
 
 
 // CREATE - POST Routes
@@ -16,26 +17,28 @@ module.exports.createWebUser = async (req, res, next) => {
   var user = req.newuser;
   // Checks if user already exists.
   try {
-    var exists = await db.oneOrNone("SELECT email FROM $1 WHERE email=$2",
-    				    [db.table_user,
+    var exists = await db.oneOrNone("SELECT email FROM $1~ WHERE email=$2",
+    				    [psql.table_user,
 				     user.email]);
   } catch (err) {
+    log.error('createWehUser(checkExists) 500 - database error: ' + err);
     return res.status(500).end();
   }
 
   if (exists) {
-    return res.json(400, {"error": "email already in use"});
+    log.info(`createWebUser(checkExists) 400 - email already in use: ${user.email}`);
+    return res.status(400).json({"error": "email already in use"});
   }
 
   // Hash password.
-  const hash = crypto.createHash('sha3-256');
+  const hash = crypto.createHash('SHA512');
   hash.update(user.password);
   const hashpass = hash.digest('hex');
   
   // Adds user info to database.
   try {
     var userid = await db.one(
-      "INSERT (given_name,\
+      "INSERT INTO $1~(given_name,\
                family_name,\
                email,\
                password,\
@@ -43,9 +46,9 @@ module.exports.createWebUser = async (req, res, next) => {
                web_active,\
                google_active,\
                created)\
-       INTO $1 VALUES ($2,$3,$4,$5,$6,$7,$8,$9)\
+       VALUES ($2,$3,$4,$5,$6,$7,$8,$9)\
        RETURNING id",
-      [db.table_user,
+      [psql.table_user,
        user.given_name,
        user.family_name,
        user.email,
@@ -56,35 +59,46 @@ module.exports.createWebUser = async (req, res, next) => {
        (new Date()).toISOString()]
     );
   } catch (err) {
+    log.error('createWebUser(AddUserProfile) 500 - database error: ' + err);
     return res.status(500).end();
   }
+
+  log.info(`createWebUser(AddUserProfile) user_profile created: ${user.email}`);
   
   // Creates e-mail confirmation token, stores in db.
-  var etoken = uuid();
+  // Token is BASE64(UUIDv4)
+  var etoken = Buffer.from(uuid()).toString('base64');
   try {
-    await db.query("INSERT (token, user_id, validated, created)\
-                    INTO $1 VALUES ($2,$3,$4,$5)",
-		   [db.table_email_token,
+    await db.query("INSERT INTO $1~(token, user_id, validated, created)\
+                    VALUES ($2,$3,$4,$5)",
+		   [psql.table_email_token,
 		    etoken,
 		    userid.id,
 		    false,
 		    (new Date()).toISOString()]
 		  );
   } catch (err) {
+    log.error(`createWebUser(createEmailToken) database error (delete user_profile):` + err);
     try {
-      await db.query("DELETE FROM $1 WHERE id=$2",
-		     [db.table_user,
+      await db.query("DELETE FROM $1~ WHERE id=$2",
+		     [psql.table_user,
 		      userid.id]
 		    );
     } catch (err) {
+      log.error('createWebUser(deleteUserTokenError) 500 - database error' + err);
       return res.status(500).end();
     }
+    log.error('createWebUser(deleteUserTokenError) 500 - user_profile deleted');
     return res.status(500).end();
   }
-  
-  // Sends welcome e-mail with confirmation link.
-  mailer.sendWelcomeMail(user, config.backend_url + 'user/validate/' + etoken);
 
+  log.info(`createWebUser(createEmailToken) email_token created (${user.email}): ${etoken}`);
+  
+  // Sends welcome e-mail with confirmation link. (Encode token base64)
+  mailer.sendWelcomeMail(user, config.backend_url + '/user/validate/' + etoken);
+
+  log.info('createWebUser() 200');
+  
   return res.status(200).end();
 };
 
@@ -93,66 +107,82 @@ module.exports.createWebUser = async (req, res, next) => {
 // Validates user email using eToken, activates account and creates Personal group.
 module.exports.validateEmail = async (req, res, next) => {
   var etoken = req.params.eToken;
+  
+  log.info(`validateEmail(${req.method}) etoken: ${etoken}`);
 
   // Validate token format (UUIDv4).
-  if (!validator.isUUID(etoken,4)) {
-    return res.json(400, {"error": "invalid token format"});
+  if (!validator.isUUID(Buffer.from(etoken,'base64').toString('ascii'),4)) {
+    log.info(`validateEmail(tokenFormat) 400 - invalid token format`);
+    return res.status(400).json({"error": "invalid token format"});
   }
 
   // Check database.
   try {
-    var dbtoken = await db.oneOrNone("SELECT user_id, validated FROM $1 WHERE token=$2",
-				   [db.table_email_token,
+    var dbtoken = await db.oneOrNone("SELECT user_id, validated FROM $1~ WHERE token=$2",
+				   [psql.table_email_token,
 				    etoken]);
   } catch (err) {
+    log.info(`validateEmail(checkTokenDB) 500 - database error: ${err}`);
     return res.status(500).end();
   }
 
-  if (!dbotken) {
+  if (!dbtoken) {
+    log.info(`validateEmail(checkTokenDB) 400 - token does not exist`);
     return res.status(404).end();
   }
 
   // Return error if token was already used.
   if (dbtoken.validated) {
-    return res.json(400, {"error": "token already used"});
+    log.info(`validateEmail(checkTokenDB) 400 - token already used`);
+    return res.status(400).json({"error": "token already used"});
   }
 
   // Activate user.
   try {
-    await db.query("UPDATE $1 SET web_active=TRUE WHERE id=$2",
-		   [db.table_user,
+    await db.query("UPDATE $1~ SET web_active=TRUE WHERE id=$2",
+		   [psql.table_user,
 		    dbtoken.user_id]);
     
   } catch (err) {
+    log.info(`validateEmail(activateUser) 500 - database error: ${err}`);
     return res.status(500).end();
   }
 
+  log.info(`validateEmail(activateUser) userid(${dbtoken.user_id}) activated`);
+
   // Expire token.
   try {
-    await db.query("UPDATE $1 SET validated=$2, modified=$3 WHERE token=$4",
-		   [db.table_email_token,
+    await db.query("UPDATE $1~ SET validated=$2, modified=$3 WHERE token=$4",
+		   [psql.table_email_token,
 		    true,
 		    (new Date()).toISOString(),
 		    etoken]
 		  );
   } catch (err) {
+    log.info(`validateEmail(expireToken) 500 - database error: ${err}`);
     return res.status(500).end();
   }
 
-  // Create Personal group.
+    log.info(`validateEmail(expireToken) expired: ${etoken}`);
+  
+
+  // Create Personal team.
   try {
-    await db.query("INSERT (team_name, ownerId, personal, created)\
-                    INTO $1\
-                    VALUES($2,$3,$4,$5)",
-		   [db.table_team,
-		    "My Projects",
-		    dbtoken.user_id,
-		    true,
-		    (new Date()).toISOString()]
-		  );
+    var team = await db.one("INSERT INTO $1~(team_name, ownerId, personal, created)\
+                             VALUES($2,$3,$4,$5) RETURNING id",
+			    [psql.table_team,
+			     "My Projects",
+			     dbtoken.user_id,
+			     true,
+			     (new Date()).toISOString()]
+			   );
   } catch (err) {
+    log.info(`validateEmail(createPersonalTeam) 500 - database error: ${err}`);
     return res.status(500).end();
   };
+
+  log.info(`validateEmail(createPersonalTeam) team(${team.id}) created`);
+  log.info(`validateEmail() 200`);
   
   return res.status(200).end();
 };
@@ -238,59 +268,73 @@ function isValidDate(d) {
 }
 
 module.exports.validateNewUser = async (req, res, next) => {
+  log.log('debug', `validateNewUser(POST): ${JSON.stringify(req.body)}`);
   // email: email
   if (!validator.isLength(req.body.email, {max:50}) || !validator.isEmail(req.body.email)) {
-    return res.json(400, {"error": "invalid email format"});
+    log.info(`validateNewUser(validateEmail) 400 - invalid email format: ${req.body.email}`);
+    return res.status(400).json({"error": "invalid email format"});
   }
   
   // given_name: unicode single word, max 20 char
   if (!validator.isLength(req.body.given_name, {max:20}) ||
       !re.unicodeWord(req.body.given_name)) {
-    return res.json(400, {"error": "invalid given_name format"});
+    log.info(`validateNewUser(validateGivenName) 400 - invalid given_name format: ${req.body.given_name}`);
+    return res.status(400).json({"error": "invalid given_name format"});
   }
 
-  // Add fields to newuser.
-  req.newuser.email = validator.normalizeEmail(req.body.email);
-  req.newuser.given_name = req.body.given_name;
-  req.newuser.family_name = req.body.family_name.replace(/\s+/g, ' ');
-  
   // family_name: unicode multiple words, max 50 char, max 3 words
-  if (!re.unicodeWords(req.newuser.family_name, '-') ||
-      !validator.isLength(req.newuser.family_name, {max:50}) ||
-      req.newuser.family_name.split(' ').length > 3) {
-    return res.json(400, {"error": "invalid family_name format"});
+  if (!re.unicodeWords(req.body.family_name, '-') ||
+      !validator.isLength(req.body.family_name, {max:50}) ||
+      req.body.family_name.split(' ').length > 3) {
+    log.info(`validateNewUser(validateFamilyName) 400 - invalid family_name format: ${req.body.family_name}`);
+    return res.status(400).json({"error": "invalid family_name format"});
   }
 
-  // password: min len 6, not blacklisted
+    // password: min len 6, not blacklisted
   if (!validator.isLength(req.body.password, {min:6})) {
-    return res.json(400, {"error": "invalid password format"});
+    log.info(`validateNewUser(validatePassword) 400 - invalid password format: ${req.body.password}`);
+    return res.status(400).json({"error": "invalid password format"});
   }
 
   try {
-  var blacklist = await db.oneOrNone("SELECT text FROM $1 WHERE text=$2",
-			       [db.table_password_blacklist,
-				req.body.password]);
+    var blacklist = await db.oneOrNone('SELECT password FROM $1~ WHERE password=$2',
+				       [psql.table_password_blacklist,
+					req.body.password]);
   } catch (err) {
+    log.info(`validateNewUser(validatePasswordBlacklist) 500 - database error: ${err}`);
     return res.status(500).end();
   }
 
   if (blacklist) {
-    return res.json(400, {"error": "password blacklisted"});
+    log.info(`validateNewUser(validatePasswordBlacklist) 400 - password blacklisted: ${req.body.password}`);
+    return res.status(400).json({"error": "password blacklisted"});
   }
+
+  // Add fields to newuser.
+  req.newuser = {
+    email: validator.normalizeEmail(req.body.email),
+    given_name: req.body.given_name,
+    family_name: req.body.family_name.replace(/\s+/g, ' '),
+    password: req.body.password
+  };
 
   // birthdate: any format accepted by Date, no later than today, not before 150 years ago.
   if (req.body.birthdate) {
     var bd = new Date(req.body.birthdate);
     if (!isValidDate(bd)) {
-      return res.json(400, {"error": "invalid birthdate format"});
+      log.info(`validateNewUser(validateBirthdate) 400 - invalid birthdate format: ${req.body.birthdate}`);
+      return res.status(400).json({"error": "invalid birthdate format"});
     }
 
     var now = new Date(Date.now());
     var mindate = new Date(Date.now());
     mindate.setFullYear(mindate.getFullYear()-150);
     if (bd >= now || bd < mindate) {
-      return res.json(400, {"error": "invalid birthdate"});
+      log.info(`validateNewUser(validateBirthdate) 400 - birthdate out of bounds: ${req.body.birthdate}`);
+      return res.status(400).json({"error": "birthdate out of bounds"});
     }
+
+    req.newuser.birthdate = bd;
   }
 
   return next();
@@ -324,15 +368,14 @@ module.exports.getMyNotebooks = async (req, res, next) => {
 
   // Get all user notebooks.
   try {
-    var notebooks = await db.manyOrNone("SELECT * FROM $1 WHERE ownerId=$2", [psql.table_notebook, user_id]);
+    var notebooks = await db.manyOrNone("SELECT * FROM $1~ WHERE ownerId=$2", [psql.table_notebook, user_id]);
   } catch (err) {
     // DB error, return '500 Internal server error'.
     return res.status(500).end();
   }
 
   // Return user notebooks.
-  res.status(200);
-  res.json(notebooks);
+  res.status(200).json(notebooks);
 };
 
 
@@ -353,7 +396,7 @@ module.exports.getMySharedNotebooks = async (req, res, next) => {
   // Get notebooks not owned by user(user_id) where user(user_id) has write access.
   try {
     var notebooks = await db.manyOrNone(
-      "SELECT * FROM $1\
+      "SELECT * FROM $1~\
        WHERE ownerId != $3\
        AND projectId IN (SELECT projectId FROM $2\
                          WHERE userId=$3\
@@ -367,8 +410,7 @@ module.exports.getMySharedNotebooks = async (req, res, next) => {
   }
 
   // Return user notebooks.
-  res.status(200);
-  res.json(notebooks);
+  res.status(200).json(notebooks);
 };
 
 
@@ -386,7 +428,7 @@ module.exports.getPublicNotebooks = async (req, res, next) => {
 
   // Get all public notebooks owned by target_id.
   try {
-    var notebooks = await db.manyOrNone("SELECT * FROM $1 WHERE ownerId=$2 AND public=TRUE", [psql.table_notebook, target_id]);
+    var notebooks = await db.manyOrNone("SELECT * FROM $1~ WHERE ownerId=$2 AND public=TRUE", [psql.table_notebook, target_id]);
   } catch (err) {
     // DB error, return '500 Internal server error'.
     res.status(500);
@@ -395,8 +437,7 @@ module.exports.getPublicNotebooks = async (req, res, next) => {
   }
 
   // Return notebooks.
-  res.status(200);
-  res.json(notebooks);
+  res.status(200).json(notebooks);
 };
 
 
@@ -423,7 +464,7 @@ module.exports.getSharedNotebooks = async (req, res, next) => {
   // Get notebooks owned by user(target_id) and shared with user(user_id).
   try {
     var notebooks = await db.manyOrNone(
-      "SELECT * FROM $1\
+      "SELECT * FROM $1~\
        WHERE ownerId=$3\
        AND projectId IN (SELECT projectId FROM $2 WHERE userId=$4 AND write=TRUE)"
       , [psql.table_notebook, psql.table_project_permissions, target_id, user_id]);
@@ -435,7 +476,6 @@ module.exports.getSharedNotebooks = async (req, res, next) => {
   }
 
   // Return user notebooks.
-  res.status(200);
-  res.json(notebooks);
+  res.status(200).json(notebooks);
 };
 

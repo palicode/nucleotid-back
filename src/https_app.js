@@ -13,8 +13,6 @@ var config      = require('../config.js')[process.env.NODE_ENV || "dev"];
 // Routers
 var indexRouter = require('./routes/index');
 
-log.info(`HTTPS API (NODE_ENV = ${process.env.NODE_ENV})`);
-
 // Configure CORS.
 var cors_options = {
   origins: config.cors_origins,

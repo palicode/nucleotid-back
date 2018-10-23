@@ -4,6 +4,8 @@ const log   = require('./modules/logger').logmodule(module);
 
 var server;
 
+log.info(`Node server (NODE_ENV = ${process.env.NODE_ENV})`);
+
 run_server();
 
 async function run_server() {

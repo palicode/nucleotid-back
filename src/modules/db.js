@@ -23,6 +23,7 @@ const pgp = require('pg-promise')(initOptions);
 const db = pgp(conn);
 
 module.exports.db = db;
+module.exports.pgp = pgp;
 
 /*
 ** DATABASE QUERIES
@@ -53,7 +54,7 @@ module.exports.table_notebook_step = 'notebook_step';
 
 var tables = [
   "CREATE TABLE IF NOT EXISTS password_blacklist (\
-       text                varchar(30)  PRIMARY KEY\
+       password            varchar(30)  PRIMARY KEY\
   );",
   "CREATE TABLE IF NOT EXISTS user_profile (\
        id    	    	   bigserial	PRIMARY KEY,\

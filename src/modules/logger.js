@@ -9,7 +9,7 @@ const winston = require('winston');
 */
 
 const logger = winston.createLogger({
-  level: 'info',
+  level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
   format: winston.format.json(),
   transports: [
     //
@@ -33,20 +33,21 @@ if (process.env.NODE_ENV !== 'production') {
 
 module.exports.logmodule = function (module) {
   var filename = module.id.split('src/');
-  filename = filename[filename.length-1];
-  if (filename == '.') filename = 'node';
+  if (filename == '.') filename = '[node] ';
+  else filename = '[' + filename[filename.length-1] + '] ';
+
   return {
     info : function (msg, ...args) { 
-      logger.info(filename + ': ' + msg, ...args); 
+      logger.info(filename + msg, ...args); 
     },
     warn : function (msg, ...args) {
-      logger.warn(filename + ': ' + msg, ...args);
+      logger.warn(filename + msg, ...args);
     },
     error : function (msg, ...args) {
-      logger.error(filename + ': ' + msg, ...args);
+      logger.error(filename + msg, ...args);
     },
     log : function (level, msg, ...args) {
-      logger.log(level, filename + ': ' + msg, ...args);
+      logger.log(level, filename + msg, ...args);
     }
   };
 };
