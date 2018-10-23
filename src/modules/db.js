@@ -51,6 +51,7 @@ module.exports.table_project = 'project';
 module.exports.table_project_permissions = 'project_permissions';
 module.exports.table_notebook = 'notebook';
 module.exports.table_notebook_step = 'notebook_step';
+module.exports.table_auth_session = 'auth_session';
 
 var tables = [
   "CREATE TABLE IF NOT EXISTS password_blacklist (\
@@ -141,7 +142,7 @@ var tables = [
        issued       timestamptz   NOT NULL,\
        refreshed    timestamptz   NOT NULL\
    );",
-  "CREATE UNIQUE INDEX IF NOT EXISTS token_userid ON auth_session(userid);"
+  "CREATE UNIQUE INDEX IF NOT EXISTS token_userid ON auth_session(tokenid, userid);"
 ];
 
 module.exports.createDBTables = async () => {

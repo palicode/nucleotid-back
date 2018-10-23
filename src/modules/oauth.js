@@ -31,48 +31,47 @@ module.exports.initialize = function initialize(options) {
 ** SESSION FUNCTIONS
 */
 
-module.exports.newSession = (userId) => {
+module.exports.newSession =  async (req, res, next) => {
+  // Get user identifier from request body.
+  var userId = req.user.id;
   
-  return async (req, res, next) => {
-    
-    // generateRefreshId
-    // Generates a unique UUIDv4 to identify the refresh token.
-    var refreshId = uuid();
-    log.info(`newSession(generateRefreshId) new refresh uuid: ${refreshId}`);
+  // generateRefreshId
+  // Generates a unique UUIDv4 to identify the refresh token.
+  var refreshId = uuid();
+  log.info(`newSession(generateRefreshId) new refresh uuid: ${refreshId}`);
 
-    // registerRefreshToken
-    // Inserts the refresh token id in auth_session.
-    var timestamp = new Date();
-    try {
-      await db.none("INSERT INTO $1~ VALUES($2,$3,$4,$5);",
-		    [psql.table_auth_session,
-		     refreshId,
-		     userId,
-		     timestamp.toISOString(),
-		     timestamp.toISOString()]
-		   );
-    } catch(err) {
-      log.error(`newSession(registerRefreshToken) 500 - database error: ${err}`);
-      return res.status(500).end();
-    }
-    log.info(`newSession(registerRefreshToken) token registered successfully`);
+  // registerRefreshToken
+  // Inserts the refresh token id in auth_session.
+  var timestamp = new Date();
+  try {
+    await db.none("INSERT INTO $1~ VALUES($2,$3,$4,$5);",
+		  [psql.table_auth_session,
+		   refreshId,
+		   userId,
+		   timestamp.toISOString(),
+		   timestamp.toISOString()]
+		 );
+  } catch(err) {
+    log.error(`newSession(registerRefreshToken) 500 - database error: ${err}`);
+    return res.status(500).end();
+  }
+  log.info(`newSession(registerRefreshToken) token registered successfully`);
 
-    // generateAuthTokens
-    // Creates a new pair of valid tokens for authorization and refresh.
-    var tokens = {
-      accessToken: newToken(userId, refreshId, signature_key_access, timestamp.getTime()),
-      refreshToken: newToken(userId, refreshId, signature_key_refresh)
-    };
-
-    log.log('debug', `newSession(generateAuthTokens) accessToken: ${tokens.accessToken}`);
-    log.log('debug', `newSession(generateAuthTokens) refreshToken: ${tokens.refreshToken}`);
-
-    // Status 200
-    log.info(`newSession() 200`);
-    return res.status(200).json(tokens);
+  // generateAuthTokens
+  // Creates a new pair of valid tokens for authorization and refresh.
+  var tokens = {
+    accessToken: newToken(userId, refreshId, signature_key_access, timestamp.getTime()),
+    refreshToken: newToken(userId, refreshId, signature_key_refresh)
   };
-  
+
+  log.log('debug', `newSession(generateAuthTokens) accessToken: ${tokens.accessToken}`);
+  log.log('debug', `newSession(generateAuthTokens) refreshToken: ${tokens.refreshToken}`);
+
+  // Status 200
+  log.info(`newSession() 200`);
+  return res.status(200).json(tokens);
 };
+  
 
 
 module.exports.extendSession = () => {
@@ -148,80 +147,78 @@ module.exports.extendSession = () => {
 };
 
 
-module.exports.logout = () => {
-  return async (req,res,next) => {
-    // logout
-    // Revokes the refreshToken associated with the current accessToken.
+module.exports.logout = async (req,res,next) => {
+  // logout
+  // Revokes the refreshToken associated with the current accessToken.
 
-    // checkAuthentication
-    // Authentication with access token is enough to logout.
-    if (!req.auth.valid) {
-      let e = {error: "not authenticated"};
-      log.info(`logout(checkAuthentication) 401 - ${e.error}`);
-      return res.status(401).json(e);
-    }
+  // checkAuthentication
+  // Authentication with access token is enough to logout.
+  if (!req.auth.valid) {
+    let e = {error: "not authenticated"};
+    log.info(`logout(checkAuthentication) 401 - ${e.error}`);
+    return res.status(401).json(e);
+  }
 
-    // revokeSession
-    // Deletes the session record from the database. This revokes the refresh token.
-    try {
-      var uuids = await db.manyOrNone("DELETE FROM $1~\
+  // revokeSession
+  // Deletes the session record from the database. This revokes the refresh token.
+  try {
+    var uuids = await db.manyOrNone("DELETE FROM $1~\
                                        WHERE userid=$2\
                                        AND tokenid LIKE $3 || '%'\
                                        RETURNING tokenid",
-				      [psql.table_auth_session,
-				       req.auth.userid,
-				       req.auth.token.payload.tokenid]
-				     );
-    } catch(err) {
-      log.error(`logout(revokeSession) 500 - database error: ${err}`);
-      return res.status(500).end();
-    }
+				    [psql.table_auth_session,
+				     req.auth.userid,
+				     req.auth.token.payload.tokenid]
+				   );
+  } catch(err) {
+    log.error(`logout(revokeSession) 500 - database error: ${err}`);
+    return res.status(500).end();
+  }
 
-    if (!uuids) {
-      let e = {error: "session does not exist"};
-      log.info(`logout(revokeSession) 400 - ${e.error}`);
-      return res.status(400).json(e);
-    }
+  if (!uuids) {
+    let e = {error: "session does not exist"};
+    log.info(`logout(revokeSession) 400 - ${e.error}`);
+    return res.status(400).json(e);
+  }
 
-    uuids.forEach((uuid) => log.info(`logout(revokeSession) revoked session: ${uuid}`));
+  uuids.forEach((uuid) => log.info(`logout(revokeSession) revoked session: ${uuid}`));
 
-    // status 200
-    log.info('logout() 200');
-    return res.status(200).end();
-  };
+  // status 200
+  log.info('logout() 200');
+  return res.status(200).end();
 };
 
 
-module.exports.endSessions = () => {
-  return async (req,res,next) => {
-    // checkAuthentication
-    // Authentication with access token is enough to end all sessions.
-    if (!req.auth.valid) {
-      let e = {error: "not authenticated"};
-      log.info(`endSessions(checkAuthentication) 401 - ${e.error}`);
-      return res.status(401).json(e);
-    }
 
-    // revokeAllSessions
-    // Deletes all session records for userid from the database.
-    try {
-      await db.none("DELETE FROM $1~\
+module.exports.endSessions = async (req,res,next) => {
+  // checkAuthentication
+  // Authentication with access token is enough to end all sessions.
+  if (!req.auth.valid) {
+    let e = {error: "not authenticated"};
+    log.info(`endSessions(checkAuthentication) 401 - ${e.error}`);
+    return res.status(401).json(e);
+  }
+
+  // revokeAllSessions
+  // Deletes all session records for userid from the database.
+  try {
+    await db.none("DELETE FROM $1~\
                      WHERE userid=$1",
-		    [psql.table_auth_session,
-		     req.auth.userid]
-		   );
-    } catch(err) {
-      log.error(`endSessions(revokeAllSessions) 500 - database error: ${err}`);
-      return res.status(500).end();
-    }
+		  [psql.table_auth_session,
+		   req.auth.userid]
+		 );
+  } catch(err) {
+    log.error(`endSessions(revokeAllSessions) 500 - database error: ${err}`);
+    return res.status(500).end();
+  }
 
-    log.info(`endSessions(revokeAllSession) revoked all sessions for userid: ${req.auth.userid}`);
+  log.info(`endSessions(revokeAllSession) revoked all sessions for userid: ${req.auth.userid}`);
 
-    // status 200
-    log.info('endSessions() 200');
-    return res.status(200).end();
-  };
+  // status 200
+  log.info('endSessions() 200');
+  return res.status(200).end();
 };
+
 
 
 /*
@@ -252,7 +249,7 @@ function authValidation(req, res, next) {
   // validateToken
   // Checks the validity of the authentication token.
   var token64 = m[1];
-  log.log('debug', `authValidation(validateToken) token: ${token}`);
+  log.log('debug', `authValidation(validateToken) token: ${token64}`);
 
   var token = validateAccessToken(token64);
 
@@ -297,8 +294,8 @@ function newToken(userId, tokenId, key, time_ms) {
   };
 
   // Encode token parts.
-  header = Buffer.from(JSON.stringify(headerobj),'base64');
-  data = Buffer.from(JSON.stringify(dataobj),'base64');
+  var header = Buffer.from(JSON.stringify(headerobj),'ascii').toString('base64');
+  var data = Buffer.from(JSON.stringify(dataobj),'ascii').toString('base64');
 
   // Sign token.
   const hmac = crypto.createHmac('sha256', key);
@@ -313,7 +310,7 @@ function newToken(userId, tokenId, key, time_ms) {
 function decodeToken(token) {
   // JWT must contain 3 parts separated by '.'
   var parts = token.split('.');
-  if (parts != 3) {
+  if (parts.length != 3) {
     // Invalid token format.
     return null;
   }
@@ -366,7 +363,7 @@ function validateAccessToken(token64) {
   const hmac = crypto.createHmac('sha256', signature_key_access);
   hmac.update(m[0]+"."+m[1]);
 
-  var computed_signature = hmac.digest('base64');
+  var computed_signature = Buffer.from(hmac.digest('base64'), 'base64');
   var bearer_signature = Buffer.from(token.signature, 'base64');
  
   if (crypto.timingSafeEqual(computed_signature, bearer_signature)) {
