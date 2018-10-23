@@ -28,23 +28,21 @@ mailer.initialize({email: process.env.NUCLEOTID_MAILER_ADDRESS,
 		   password: process.env.NUCLEOTID_MAILER_PASSWORD});
 
 // Initialize app.
-log.info(`initialize express app`);
+log.info(`initialize express`);
 var app = express();
 // Set middleware.
 app.use(morgan('dev'));
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
-app.use(oauth.initialize({key: process.env.NUCLEOTID_OAUTH_SIGNATURE_SECRET || 'AuthSignatureSecret', db: psql.db}));
+app.use(oauth.initialize({key: process.env.NUCLEOTID_OAUTH_SIGNATURE_SECRET || 'AuthSignatureSecret'}));
 app.use(passport.initialize());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Use routes.
-
-// This route will be deleted when the app has a working react frontend.
-//app.use('/', require('./routes/index'));
-// End of delete.
-log.info('register route: /user');
+log.info('use route: /user');
 app.use('/user', require('./routes/user'));
+log.info('use route: /auth');
+app.use('/auth', require('./routes/auth'));
 
 // Catch 404 and forward to error handler.
 /*

@@ -29,6 +29,7 @@ router.get('/google', passport.authenticate('google', {scope: ['email']}));
 router.get('/google/return', passport.authenticate('google', {failureRedirect: '/login'}),
 	   // If login suceeds this code will be executed -> Redirect to home.
 	   (req, res) => {
+	     // API login, register auth and refresh tokens.
 	     res.redirect('/');
 	   }
 	  );
