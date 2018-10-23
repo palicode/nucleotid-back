@@ -1,30 +1,29 @@
 const crypto = require('crypto');
 const uuid = require('uuid/v4');
+const log  = require('./logger').logmodule(module);
+const psql = require('./db');
 
 var signature_key_access;
 var signature_key_refresh;
 var token_validity;
 var minimum_validity;
-var db;
+var db = psql.db;
 
-// TODO: Add an option or a chron job to revoke all refresh tokens that haven't been used for X days.
+/* TODO:
+** - Add an option or a chron job to revoke all refresh tokens that haven't been confirmed for X days.
+*/   
 
 module.exports.initialize = function initialize(options) {
   if (!options.key && (!options.access_key || !options.refresh_key)) {
     throw new Error("auth: Error initializing module -- 'key' option not defined.");
   }
 
-  if (options.db === undefined) {
-    throw new Error("auth: Error initializing module -- 'db' not defined.");
-  }
-
   signature_key_access = options.access_key || options.key;
   signature_key_refresh = options.refresh_key || options.key;
   token_validity = options.max_validity || 35;
   minimum_validity = options.min_validity || 5;
-  db = options.db;
 
-  return authTokenMiddleware;
+  return authValidation;
 };
 
 
@@ -35,24 +34,42 @@ module.exports.initialize = function initialize(options) {
 module.exports.newSession = (userId) => {
   
   return async (req, res, next) => {
-    var refreshId = uuid();
-
-    try {
-      await db.none("INSERT INTO auth_session VALUES($1,$2,$3,$4);", [refreshId, userId, (new Date()).toISOString(), (new Date()).toISOString()]);
-    } catch(err) {
-      // TODO: Filter error, it may fail because refreshId is not unique (generate new uuid).
-      res.status(500).end();
-      return;
-    }
     
+    // generateRefreshId
+    // Generates a unique UUIDv4 to identify the refresh token.
+    var refreshId = uuid();
+    log.info(`newSession(generateRefreshId) new refresh uuid: ${refreshId}`);
+
+    // registerRefreshToken
+    // Inserts the refresh token id in auth_session.
+    var timestamp = new Date();
+    try {
+      await db.none("INSERT INTO $1~ VALUES($2,$3,$4,$5);",
+		    [psql.table_auth_session,
+		     refreshId,
+		     userId,
+		     timestamp.toISOString(),
+		     timestamp.toISOString()]
+		   );
+    } catch(err) {
+      log.error(`newSession(registerRefreshToken) 500 - database error: ${err}`);
+      return res.status(500).end();
+    }
+    log.info(`newSession(registerRefreshToken) token registered successfully`);
+
+    // generateAuthTokens
+    // Creates a new pair of valid tokens for authorization and refresh.
     var tokens = {
-      accessToken: newToken(userId, null, signature_key_access),
+      accessToken: newToken(userId, refreshId, signature_key_access, timestamp.getTime()),
       refreshToken: newToken(userId, refreshId, signature_key_refresh)
     };
 
-    res.status(200);
-    res.json(tokens);
-    return;
+    log.log('debug', `newSession(generateAuthTokens) accessToken: ${tokens.accessToken}`);
+    log.log('debug', `newSession(generateAuthTokens) refreshToken: ${tokens.refreshToken}`);
+
+    // Status 200
+    log.info(`newSession() 200`);
+    return res.status(200).json(tokens);
   };
   
 };
@@ -60,116 +77,149 @@ module.exports.newSession = (userId) => {
 
 module.exports.extendSession = () => {
   return async (req, res, next) => {
-    // Check request header.
+
+    // checkAuthHeader
+    // Check Authorization header.
     var auth_header = req.header('Authentication');
     if (auth_header === undefined) {
-      res.status(400);
-      res.json({err: "Missing header"});
-      return;
+      let e = {error: "authentication header not present"};
+      log.info(`extendSession(checkAuthHeader) 401 - ${e.error}`);
+      return res.status(401).json(e);
     }
-    
-    // Extract authorization token.
+
+    // authProtocol
+    // Gets the authentication protocol from the header.
     var m = auth_header.split(' ');
     if (m[0] !== "Bearer") {
-      res.status(400);
-      res.json({err: "Invalid header"});
-      return;
+      let e = {error: "authentication protocol not supported"};
+      log.info(`extendSession(authProtocol) 400 - ${e.error}`);
+      return res.status(400).json(e);
     }
+
+    // validateToken
+    // Checks the validity of the authentication token.
     var token = m[1];
+    log.log('debug', `extendSession(validateToken) token: ${token}`);
 
-    // Validate token.
-    var data = await validateRefreshToken(token);
-
-    if (!data) {
-      res.status(401);
-      res.json({err: "Invalid token"});
-      return;
-    }
-
-    var last_refresh = (new Date(data.refreshed)).getTime();
-    if (last_refresh + minimum_validity*60000 > Date.now()) {
-      res.status(400);
-      res.json({err: "Minimum validity"});
-      return;
-    }
-
-    var tokens = {
-      accessToken: newToken(data.uid, null, signature_key_access)
-    };
-
-    // Update refreshed timestamp.
     try {
-      await db.none("UPDATE auth_session SET refreshed=$1 WHERE tokenid=$2", [(new Date()).toISOString(), data.tokenid]);
+      var session = await validateRefreshToken(token);
     } catch (err) {
-      res.status(500).end();
-      return;
+      log.error(`extendSession(validateRefreshToken) 500 - database error: ${err}`);
+      return res.status(500).end();
+    }
+    
+    if (session.error) {
+      log.info(`extendSession(validateToken) 400 - ${session.error}`);
+      return res.status(400).json(session.error);
     }
 
-    // Valid request, send new token.
-    res.status(200);
-    res.json(tokens);
+    // tokenMinValidity
+    // Checks period since last session extension.
+    var last_refresh = (new Date(session.refreshed)).getTime();
+    if (last_refresh + minimum_validity*60000 > Date.now()) {
+      log.info(`extendSession(tokenMinValidity) 400 - last refresh ${last_refresh} (min valid ${mininum_validity}')`);
+      return res.status(400).json({error: "refresh token minimum validity"});
+    }
 
-    return;
+    // updateSession
+    // Update session timestamp.
+    var timestamp = new Date();
+    try {
+      await db.none("UPDATE $1~ SET refreshed=$2 WHERE tokenid=$3",
+		    [psql.table_auth_session,
+		     timestamp.toISOString(),
+		     session.tokenid]);
+    } catch (err) {
+      log.error(`extendSession(updateSession) 500 - database error: ${err}`);
+      return res.status(500).end();
+    }
+
+    // generateAccessToken
+    // Creates a valid access token.
+    var tokens = {
+      accessToken: newToken(session.userid, session.tokenid, signature_key_access, timestamp.getTime())
+    };
+    log.log('debug', `extendSession(generateAccessToken) accessToken: ${tokens.accessToken}`);
+
+    // Status 200
+    log.info(`extendSession() 200`);
+    return res.status(200).json(tokens);
   };
 };
 
 
 module.exports.logout = () => {
   return async (req,res,next) => {
-    // Check request header.
-    var auth_header = req.header('Authentication');
-    if (auth_header === undefined) {
-      res.status(400);
-      res.json({err: "Missing header"});
-      return;
-    }
-    
-    // Extract authorization token.
-    var m = auth_header.split(' ');
-    if (m[0] !== "Bearer") {
-      res.status(400);
-      res.json({err: "Invalid header"});
-      return;
-    }
-    var token = m[1];
+    // logout
+    // Revokes the refreshToken associated with the current accessToken.
 
-    // Validate token.
-    var data = await validateRefreshToken(token);
-
-    if (!data) {
-      res.status(401);
-      res.json({err: "Invalid token"});
-      return;
+    // checkAuthentication
+    // Authentication with access token is enough to logout.
+    if (!req.auth.valid) {
+      let e = {error: "not authenticated"};
+      log.info(`logout(checkAuthentication) 401 - ${e.error}`);
+      return res.status(401).json(e);
     }
 
+    // revokeSession
+    // Deletes the session record from the database. This revokes the refresh token.
     try {
-      await db.none("DELETE FROM auth_session WHERE tokenid=$1", [data.tokenid]);
+      var uuids = await db.manyOrNone("DELETE FROM $1~\
+                                       WHERE userid=$2\
+                                       AND tokenid LIKE $3 || '%'\
+                                       RETURNING tokenid",
+				      [psql.table_auth_session,
+				       req.auth.userid,
+				       req.auth.token.payload.tokenid]
+				     );
     } catch(err) {
-      res.status(500);
-      res.end();
+      log.error(`logout(revokeSession) 500 - database error: ${err}`);
+      return res.status(500).end();
     }
 
-    res.status(200);
-    res.end();
+    if (!uuids) {
+      let e = {error: "session does not exist"};
+      log.info(`logout(revokeSession) 400 - ${e.error}`);
+      return res.status(400).json(e);
+    }
+
+    uuids.forEach((uuid) => log.info(`logout(revokeSession) revoked session: ${uuid}`));
+
+    // status 200
+    log.info('logout() 200');
+    return res.status(200).end();
   };
 };
 
 
 module.exports.endSessions = () => {
   return async (req,res,next) => {
-
-    // Check if user bears a valid token.
-    if (!req.auth.validToken) {
-      res.status(401);
-      res.end();
+    // checkAuthentication
+    // Authentication with access token is enough to end all sessions.
+    if (!req.auth.valid) {
+      let e = {error: "not authenticated"};
+      log.info(`endSessions(checkAuthentication) 401 - ${e.error}`);
+      return res.status(401).json(e);
     }
 
-    // Then revoke all refresh tokens.
+    // revokeAllSessions
+    // Deletes all session records for userid from the database.
     try {
-      await db.none("DELETE FROM auth_session WHERE userid=$1", [userId]);
+      var uids = await db.none("DELETE FROM $1~\
+                                WHERE userid=$1",
+			       [psql.table_auth_session,
+				req.auth.userid]
+			      );
     } catch(err) {
-      throw err;
+      log.error(`endSessions(revokeAllSessions) 500 - database error: ${err}`);
+      return res.status(500).end();
     }
+
+    log.info(`endSessions(revokeAllSession) revoked all sessions for userid: ${req.auth.userid}`);
+
+    // status 200
+    log.info('endSessions() 200');
+    return res.status(200).end();
   };
 };
 
@@ -178,35 +228,48 @@ module.exports.endSessions = () => {
 ** AUTHORIZATION MIDDLEWARE
 */
 
-function authTokenMiddleware(req, res, next) {
-  // Assume invalid token.
-  req.auth = {
-    validToken: false
-  };
-  
-  // Check request header.
+function authValidation(req, res, next) {
+
+  // checkAuthHeader
+  // Check Authorization header.
   var auth_header = req.header('Authentication');
   if (auth_header === undefined) {
+  log.info('authValidation() next (auth: false)');
+    // Register auth data in request.
+    req.auth = {valid: false};
     return next();
   }
-  
-  // Extract authorization token.
+
+  // authProtocol
+  // Gets the authentication protocol from the header.
   var m = auth_header.split(' ');
   if (m[0] !== "Bearer") {
-    return next();
+    let e = {error: "authentication protocol not supported"};
+    log.info(`authValidation(authProtocol) 400 - ${e.error}`);
+    return res.status(400).json(e);
   }
-  var token64 = m[1];
 
-  // Validate token.
+  // validateToken
+  // Checks the validity of the authentication token.
+  var token64 = m[1];
+  log.log('debug', `authValidation(validateToken) token: ${token}`);
+
   var token = validateAccessToken(token64);
 
-  if (!token) {
-    return next();
+  if (token.error) {
+    log.info(`authValidation(validateToken) 400 - ${token.error}`);
+    return res.status(400).json(token.error);
   }
 
-  req.auth.validToken = true;
-  req.auth.token = token;
+  // Register auth data in request.
+  req.auth = {
+    valid: true,
+    token: token,
+    userid: token.payload.uid
+  };
 
+  // Next middleware.
+  log.info('authValidation() next (auth: true)');
   return next();
 }
 
@@ -215,7 +278,7 @@ function authTokenMiddleware(req, res, next) {
 ** TOKEN FUNCTIONS
 */
 
-function newToken(userId, tokenId, key) {
+function newToken(userId, tokenId, key, time_ms) {
   // Create token parts.
   var headerobj = {
     "alg": "HS256",
@@ -223,11 +286,14 @@ function newToken(userId, tokenId, key) {
   };
 
   var dataobj = {uid: userId};
-  if (tokenId) {
+  if (!time_ms) {
+    // This is a refresh token.
     dataobj.tokenid = tokenId;
   } else {
-    dataobj.max_valid = Date.now() + token_validity*60000;
-    dataobj.min_valid = Date.now() + minimum_validity*60000;
+    // This is an access token.
+    dataobj.tokenid   = tokenId.split('-')[0];
+    dataobj.max_valid = time_ms + token_validity*60000;
+    dataobj.min_valid = time_ms + minimum_validity*60000;
   };
 
   // Encode token parts.
@@ -268,27 +334,31 @@ function decodeToken(token) {
   };
 }
 
+function isValidDate(d) {
+  return d instanceof Date && !isNaN(d);
+}
 
 function validateAccessToken(token64) {
   // Decode token.
   token = decodeToken(token64);
   if (!token) {
-    return null;
+    return {"error":"invalid auth token format"};
   }
   
   // Check algorithm and token type.
   // Supported are 'typ': "JWT" and 'alg': "HS256"
   if (token.header.typ !== "JWT" || token.header.alg !== "HS256") {
-    return null;
+    return {"error": "auth token type or algorithm not supported"};
   }
 
   // Check expiration date.
-  if (token.payload.valid === undefined) {
-    return null;
+  var validDate = new Date(parseInt(token.payload.max_valid,10));
+  if (!isValidDate(validDate)) {
+    return {"error": "invalid auth token date format"};
   }
-  if (Date.now() > (new Date(parseInt(token.payload.valid,10))).getTime()) {
-    // Token has expired.
-    return null;
+  
+  if (Date.now() > validDate.getTime()) {
+    return {"error": "auth token expired"};
   }
 
   // Check signature.
@@ -302,7 +372,7 @@ function validateAccessToken(token64) {
   if (crypto.timingSafeEqual(computed_signature, bearer_signature)) {
     return token;
   } else {
-    return null;
+    return {"error":"invalid auth token signature"};
   }
 }
 
@@ -311,18 +381,18 @@ async function validateRefreshToken(token64) {
   // Decode token.
   token = decodeToken(token64);
   if (!token) {
-    return null;
+    return {"error":"invalid refresh token format"};
   }
   
   // Check algorithm and token type.
   // Supported are 'typ': "JWT" and 'alg': "HS256"
   if (token.header.typ !== "JWT" || token.header.alg !== "HS256") {
-    return null;
+    return {"error": "refresh token type or algorithm not supported"};
   }
 
   // Check payload info.
   if (token.payload.tokenid === undefined || token.payload.uid === undefined) {
-    return null;
+    return {"error":"invalid refresh token format"};
   }
 
   // Check signature.
@@ -334,19 +404,26 @@ async function validateRefreshToken(token64) {
   var bearer_signature = Buffer.from(token.signature, 'base64');
  
   if (!crypto.timingSafeEqual(computed_signature, bearer_signature)) {
-    return null;
+     return {"error":"invalid refresh token signature"};
   }
 
-  // Now check if token is still valid.
+  // Check if token session is still valid.
   try {
-    var data = await db.oneOrNone("SELECT * FROM auth_session WHERE tokenid=$1", [token.payload.tokenid]);
+    var data = await db.oneOrNone("SELECT * FROM $1~ WHERE tokenid=$2",
+				  [psql.table_auth_session,
+				   token.payload.tokenid]
+				 );
   } catch (err) {
     throw err;
   }
 
+  if (!data) {
+    return {"error":"refresh token expired or revoked"};
+  }
+
   var uid = parseInt(token.payload.uid, 10);
-  if (!data || data.uid != uid) {
-    return null;
+  if (data.userid != uid) {
+    return {"error":"refresh token expired or revoked"};
   }
 
   return data;
