@@ -15,7 +15,9 @@ const log    = require('../modules/logger').logmodule(module);
 // Creates a new user without confirmed e-mail.
 module.exports.createWebUser = async (req, res, next) => {
   var user = req.newuser;
-  // Checks if user already exists.
+
+  // checkExists
+  // Checks if user.email already exists in the database.
   try {
     var exists = await db.oneOrNone("SELECT email FROM $1~ WHERE email=$2",
     				    [psql.table_user,
@@ -30,12 +32,13 @@ module.exports.createWebUser = async (req, res, next) => {
     return res.status(400).json({"error": "email already in use"});
   }
 
-  // Hash password.
+  // hashPassword.
   const hash = crypto.createHash('SHA512');
   hash.update(user.password);
   const hashpass = hash.digest('hex');
-  
-  // Adds user info to database.
+
+  // addUserProfile
+  // Inserts user_profile info to database.
   try {
     var userid = await db.one(
       "INSERT INTO $1~(given_name,\
@@ -59,12 +62,13 @@ module.exports.createWebUser = async (req, res, next) => {
        (new Date()).toISOString()]
     );
   } catch (err) {
-    log.error('createWebUser(AddUserProfile) 500 - database error: ' + err);
+    log.error('createWebUser(addUserProfile) 500 - database error: ' + err);
     return res.status(500).end();
   }
 
-  log.info(`createWebUser(AddUserProfile) user_profile created: ${user.email}`);
-  
+  log.info(`createWebUser(addUserProfile) user_profile created: ${user.email}`);
+
+  // createEmailToken
   // Creates e-mail confirmation token, stores in db.
   // Token is BASE64(UUIDv4)
   var etoken = Buffer.from(uuid()).toString('base64');
@@ -80,6 +84,8 @@ module.exports.createWebUser = async (req, res, next) => {
   } catch (err) {
     log.error(`createWebUser(createEmailToken) database error (delete user_profile):` + err);
     try {
+      // deleteUserTokenError
+      // If we had issues generating the token, delete the user.
       await db.query("DELETE FROM $1~ WHERE id=$2",
 		     [psql.table_user,
 		      userid.id]
@@ -94,6 +100,8 @@ module.exports.createWebUser = async (req, res, next) => {
 
   log.info(`createWebUser(createEmailToken) email_token created (${user.email}): ${etoken}`);
 
+  // sendWelcomeMail
+  // Send an e-mail containing a link to activate the user account.
   if (process.env.NODE_ENV === 'production') {
     // Sends welcome e-mail with confirmation link. (Encode token base64)
     mailer.sendWelcomeMail(user, config.backend_url + '/user/validate/' + etoken);
@@ -112,13 +120,15 @@ module.exports.validateEmail = async (req, res, next) => {
   
   log.info(`validateEmail(${req.method}) etoken: ${etoken}`);
 
+  // tokenFormat
   // Validate token format (UUIDv4).
   if (!validator.isUUID(Buffer.from(etoken,'base64').toString('ascii'),4)) {
     log.info(`validateEmail(tokenFormat) 400 - invalid token format`);
     return res.status(400).json({"error": "invalid token format"});
   }
 
-  // Check database.
+  // checkTokenDB
+  // Get token from database.
   try {
     var dbtoken = await db.oneOrNone("SELECT user_id, validated FROM $1~ WHERE token=$2",
 				   [psql.table_email_token,
@@ -133,13 +143,14 @@ module.exports.validateEmail = async (req, res, next) => {
     return res.status(404).end();
   }
 
-  // Return error if token was already used.
+  // Return error if token has expired.
   if (dbtoken.validated) {
     log.info(`validateEmail(checkTokenDB) 400 - token already used`);
     return res.status(400).json({"error": "token already used"});
   }
 
-  // Activate user.
+  // activateUser
+  // Set web_active true in user_profile.
   try {
     await db.query("UPDATE $1~ SET web_active=TRUE WHERE id=$2",
 		   [psql.table_user,
@@ -152,7 +163,8 @@ module.exports.validateEmail = async (req, res, next) => {
 
   log.info(`validateEmail(activateUser) userid(${dbtoken.user_id}) activated`);
 
-  // Expire token.
+  // expireToken
+  // Set token as validated so that it cannot be used twice.
   try {
     await db.query("UPDATE $1~ SET validated=$2, modified=$3 WHERE token=$4",
 		   [psql.table_email_token,
@@ -165,10 +177,10 @@ module.exports.validateEmail = async (req, res, next) => {
     return res.status(500).end();
   }
 
-    log.info(`validateEmail(expireToken) expired: ${etoken}`);
+  log.info(`validateEmail(expireToken) validated: ${etoken}`);
   
-
-  // Create Personal team.
+  // createPersonalTeam
+  // Create personal team "My Projects" for the activated user.
   try {
     var team = await db.one("INSERT INTO $1~(team_name, ownerId, personal, created)\
                              VALUES($2,$3,$4,$5) RETURNING id",
@@ -184,11 +196,12 @@ module.exports.validateEmail = async (req, res, next) => {
   };
 
   log.info(`validateEmail(createPersonalTeam) team(${team.id}) created`);
+
+  // send status 200
   log.info(`validateEmail() 200`);
   
   return res.status(200).end();
 };
-
 
 
 // READ - GET Routes
