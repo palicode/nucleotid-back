@@ -93,10 +93,12 @@ module.exports.createWebUser = async (req, res, next) => {
   }
 
   log.info(`createWebUser(createEmailToken) email_token created (${user.email}): ${etoken}`);
-  
-  // Sends welcome e-mail with confirmation link. (Encode token base64)
-  mailer.sendWelcomeMail(user, config.backend_url + '/user/validate/' + etoken);
 
+  if (process.env.NODE_ENV === 'production') {
+    // Sends welcome e-mail with confirmation link. (Encode token base64)
+    mailer.sendWelcomeMail(user, config.backend_url + '/user/validate/' + etoken);
+  }
+  
   log.info('createWebUser() 200');
   
   return res.status(200).end();
