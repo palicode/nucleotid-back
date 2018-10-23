@@ -15,7 +15,7 @@ module.exports =
 	      https_port:    '3443',
 	      database_host: '192.168.100.3',
 	      database_name: 'dev',
-	      backend_url:   'https://api.nucleotid-dev.com',
+	      backend_url:   'https://nucleotid-dev.com:3443',
 	      frontend_url:  'https://nucleotid-dev.com',
 	      cors_origins:  ['https://nucleotid-dev.com']
 	  },
@@ -23,7 +23,7 @@ module.exports =
 	      https_port:    '3443',
 	      database_host: '192.168.100.3',
 	      database_name: 'test',
-	      backend_url:   'https://api.nucleotid-dev.com',
+	      backend_url:   'https://nucleotid-dev.com:3443',
 	      frontend_url:  'https://nucleotid-dev.com',
 	      cors_origins:  ['https://nucleotid-dev.com']
 	  },
