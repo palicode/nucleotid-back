@@ -31,41 +31,37 @@ module.exports.initialize = function initialize(options) {
 ** SESSION FUNCTIONS
 */
 
+// newSession
+// Creates a new session. Registers a refresh token and returns both refresh and access tokens.
 module.exports.newSession =  async (req, res, next) => {
   // Get user identifier from request body.
   var userId = req.user.id;
   
-  // generateRefreshId
-  // Generates a unique UUIDv4 to identify the refresh token.
-  var refreshId = uuid();
-  log.info(`newSession(generateRefreshId) new refresh uuid: ${refreshId}`);
-
-  // registerRefreshToken
-  // Inserts the refresh token id in auth_session.
-  var timestamp = new Date();
+  // createSession
+  //  refresh token id in auth_session.
   try {
-    await db.none("INSERT INTO $1~ VALUES($2,$3,$4,$5);",
-		  [psql.table_auth_session,
-		   refreshId,
-		   userId,
-		   timestamp.toISOString(),
-		   timestamp.toISOString()]
-		 );
+    var session = await db.one(`INSERT INTO $1~(userid)
+			        VALUES($2)
+                                RETURNING tokenid,issued;`,
+			       [psql.table_auth_session,
+				userId]
+			      );
   } catch(err) {
-    log.error(`newSession(registerRefreshToken) 500 - database error: ${err}`);
+    log.error(`newSession(createSession) 500 - database error: ${err}`);
     return res.status(500).end();
   }
-  log.info(`newSession(registerRefreshToken) token registered successfully`);
+  log.info(`newSession(createSession) token registered successfully`);
+  log.log('debug',`newSession(createSession) token: ${session.tokenid} (issued ${session.issued})`);
 
-  // generateAuthTokens
+  // generateTokens
   // Creates a new pair of valid tokens for authorization and refresh.
   var tokens = {
-    accessToken: newToken(userId, refreshId, signature_key_access, timestamp.getTime()),
-    refreshToken: newToken(userId, refreshId, signature_key_refresh)
+    access_token: newToken(userId, session.tokenid, signature_key_access, (new Date(session.issued)).getTime()),
+    refresh_token: newToken(userId, session.tokenid, signature_key_refresh)
   };
 
-  log.log('debug', `newSession(generateAuthTokens) accessToken: ${tokens.accessToken}`);
-  log.log('debug', `newSession(generateAuthTokens) refreshToken: ${tokens.refreshToken}`);
+  log.log('debug', `newSession(generateTokens) access_token: ${tokens.access_token}`);
+  log.log('debug', `newSession(generateTokens) refresh_token: ${tokens.refresh_token}`);
 
   // Status 200
   log.info(`newSession() 200`);
@@ -73,83 +69,92 @@ module.exports.newSession =  async (req, res, next) => {
 };
   
 
+// extendSession
+// Creates a new auth token from a valid refresh token. The refresh token must be passed in
+// the request body, in JSON format {refresh_token: ''}.
+module.exports.extendSession = async (req, res, next) => {
 
-module.exports.extendSession = () => {
-  return async (req, res, next) => {
+  // checkBodyData
+  // Get token from request body.
+  var token64 = req.body.refresh_token;
 
-    // checkAuthHeader
-    // Check Authorization header.
-    var auth_header = req.header('Authentication');
-    if (auth_header === undefined) {
-      let e = {error: "authentication header not present"};
-      log.info(`extendSession(checkAuthHeader) 401 - ${e.error}`);
-      return res.status(401).json(e);
+  if (!token64) {
+    let e = {error: "refresh_token required"};
+    log.info(`extendSession(checkBodyData) 400 - ${e.error}`);
+    return res.status(400).json(e);
+  }
+  
+  // validateToken
+  // Checks the validity of the authentication token.
+  var token = validateRefreshToken(token64);
+
+  if (token.error) {
+    log.info(`extendSession(validateToken) 400 - ${token.error}`);
+    return res.status(400).json(token);
+  }
+
+  // refreshSession
+  // Updates the refresh timestamp of the session if minimum_validity minutes have passed.
+  try {
+    var session = await db.oneOrNone(`UPDATE $1~
+                                        SET refreshed=NOW()
+                                        WHERE tokenid=$2
+                                        AND userid=$3
+                                        AND refreshed<$4
+                                        RETURNING userid,tokenid,refreshed`,
+				     [psql.table_auth_session,
+				      token.payload.tokenid,
+				      token.payload.uid,
+				      new Date(Date.now()-minimum_validity*60000).toISOString()]
+				    );
+  } catch (err) {
+    log.error(`extendSession(refreshSession) 500 - database error: ${err}`);
+  }
+
+  if (!session) {
+    // findSession
+    // Try to find session to report issue to the user.
+    try {
+      session = await db.oneOrNone(`SELECT refreshed FROM $1~
+                                    WHERE tokenid=$2
+                                    AND userid=$3`,
+				   [psql.table_auth_session,
+				    token.payload.tokenid,
+				    token.payload.uid]);
+    } catch (err) {
+      log.error(`extendSession(findSession) 500 - database error: ${err}`);
     }
 
-    // authProtocol
-    // Gets the authentication protocol from the header.
-    var m = auth_header.split(' ');
-    if (m[0] !== "Bearer") {
-      let e = {error: "authentication protocol not supported"};
-      log.info(`extendSession(authProtocol) 400 - ${e.error}`);
+    if (!session) {
+      let e = {error: "token revoked"};
+      log.info(`extendSession(findSession) 401 - ${e.error}`);
+      return res.status(401).json(e);
+    } else {
+      let e = {error: `auth token minimum validity is ${minimum_validity} minutes (last refresh ${session.refreshed})`};
+      log.info(`extendSession(findSession) 400 - ${e.error}`);
       return res.status(400).json(e);
     }
+  }
 
-    // validateToken
-    // Checks the validity of the authentication token.
-    var token = m[1];
-    log.log('debug', `extendSession(validateToken) token: ${token}`);
-
-    try {
-      var session = await validateRefreshToken(token);
-    } catch (err) {
-      log.error(`extendSession(validateRefreshToken) 500 - database error: ${err}`);
-      return res.status(500).end();
-    }
-    
-    if (session.error) {
-      log.info(`extendSession(validateToken) 400 - ${session.error}`);
-      return res.status(400).json(session.error);
-    }
-
-    // tokenMinValidity
-    // Checks period since last session extension.
-    var last_refresh = (new Date(session.refreshed)).getTime();
-    if (last_refresh + minimum_validity*60000 > Date.now()) {
-      log.info(`extendSession(tokenMinValidity) 400 - last refresh ${last_refresh} (min valid ${mininum_validity}')`);
-      return res.status(400).json({error: "refresh token minimum validity"});
-    }
-
-    // updateSession
-    // Update session timestamp.
-    var timestamp = new Date();
-    try {
-      await db.none("UPDATE $1~ SET refreshed=$2 WHERE tokenid=$3",
-		    [psql.table_auth_session,
-		     timestamp.toISOString(),
-		     session.tokenid]);
-    } catch (err) {
-      log.error(`extendSession(updateSession) 500 - database error: ${err}`);
-      return res.status(500).end();
-    }
-
-    // generateAccessToken
-    // Creates a valid access token.
-    var tokens = {
-      accessToken: newToken(session.userid, session.tokenid, signature_key_access, timestamp.getTime())
-    };
-    log.log('debug', `extendSession(generateAccessToken) accessToken: ${tokens.accessToken}`);
-
-    // Status 200
-    log.info(`extendSession() 200`);
-    return res.status(200).json(tokens);
+  // generateAccessToken
+  // Creates a valid access token.
+  var tokens = {
+    access_token: newToken(session.userid, session.tokenid, signature_key_access, (new Date(session.refreshed)).getTime())
   };
+  
+  log.info(`extendSession() session extended: ${token.payload.tokenid.split('-')[0]}`);
+  log.log('debug',`extendSession() auth token: ${tokens.access_token}`);
+  
+  // Status 200
+  log.info(`extendSession() 200`);
+  return res.status(200).json(tokens);
 };
 
 
+// logout
+// Terminates the current session. Revokes the refresh token associated with the auth
+// token used for authentication.
 module.exports.logout = async (req,res,next) => {
-  // logout
-  // Revokes the refreshToken associated with the current accessToken.
 
   // checkAuthentication
   // Authentication with access token is enough to logout.
@@ -163,9 +168,9 @@ module.exports.logout = async (req,res,next) => {
   // Deletes the session record from the database. This revokes the refresh token.
   try {
     var uuids = await db.manyOrNone("DELETE FROM $1~\
-                                       WHERE userid=$2\
-                                       AND tokenid LIKE $3 || '%'\
-                                       RETURNING tokenid",
+                                     WHERE userid=$2\
+                                     AND CAST(tokenid AS text) LIKE $3 || '%'\
+                                     RETURNING tokenid",
 				    [psql.table_auth_session,
 				     req.auth.userid,
 				     req.auth.token.payload.tokenid]
@@ -181,7 +186,7 @@ module.exports.logout = async (req,res,next) => {
     return res.status(400).json(e);
   }
 
-  uuids.forEach((uuid) => log.info(`logout(revokeSession) revoked session: ${uuid}`));
+  uuids.forEach((uuid) => log.info(`logout(revokeSession) revoked session: ${req.auth.token.payload.tokenid}`));
 
   // status 200
   log.info('logout() 200');
@@ -189,7 +194,8 @@ module.exports.logout = async (req,res,next) => {
 };
 
 
-
+// endSessions
+// Revokes all refresh tokens for the authenticated user.
 module.exports.endSessions = async (req,res,next) => {
   // checkAuthentication
   // Authentication with access token is enough to end all sessions.
@@ -200,10 +206,10 @@ module.exports.endSessions = async (req,res,next) => {
   }
 
   // revokeAllSessions
-  // Deletes all session records for userid from the database.
+  // Deletes all session records for userid from the sessions database.
   try {
     await db.none("DELETE FROM $1~\
-                     WHERE userid=$1",
+                     WHERE userid=$",
 		  [psql.table_auth_session,
 		   req.auth.userid]
 		 );
@@ -374,7 +380,7 @@ function validateAccessToken(token64) {
 }
 
 
-async function validateRefreshToken(token64) {
+function validateRefreshToken(token64) {
   // Decode token.
   token = decodeToken(token64);
   if (!token) {
@@ -397,31 +403,12 @@ async function validateRefreshToken(token64) {
   const hmac = crypto.createHmac('sha256', signature_key_refresh);
   hmac.update(m[0]+"."+m[1]);
 
-  var computed_signature = hmac.digest('base64');
+  var computed_signature = Buffer.from(hmac.digest('base64'), 'base64');
   var bearer_signature = Buffer.from(token.signature, 'base64');
  
   if (!crypto.timingSafeEqual(computed_signature, bearer_signature)) {
      return {"error":"invalid refresh token signature"};
   }
 
-  // Check if token session is still valid.
-  try {
-    var data = await db.oneOrNone("SELECT * FROM $1~ WHERE tokenid=$2",
-				  [psql.table_auth_session,
-				   token.payload.tokenid]
-				 );
-  } catch (err) {
-    throw err;
-  }
-
-  if (!data) {
-    return {"error":"refresh token expired or revoked"};
-  }
-
-  var uid = parseInt(token.payload.uid, 10);
-  if (data.userid != uid) {
-    return {"error":"refresh token expired or revoked"};
-  }
-
-  return data;
+  return token;
 }

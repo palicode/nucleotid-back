@@ -136,11 +136,12 @@ var tables = [
        modified     timestamptz NOT NULL,\
        PRIMARY KEY (notebookId, location)\
    );",
+  "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";",
   "CREATE TABLE IF NOT EXISTS auth_session (\
-       tokenid      varchar(512)  PRIMARY KEY,\
+       tokenid      uuid          PRIMARY KEY DEFAULT uuid_generate_v4(),\
        userid       bigint        NOT NULL REFERENCES user_profile(id) ON DELETE CASCADE,\
-       issued       timestamptz   NOT NULL,\
-       refreshed    timestamptz   NOT NULL\
+       issued       timestamptz   NOT NULL DEFAULT NOW(),\
+       refreshed    timestamptz   NOT NULL DEFAULT NOW()\
    );",
   "CREATE UNIQUE INDEX IF NOT EXISTS token_userid ON auth_session(tokenid, userid);"
 ];
