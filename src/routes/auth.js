@@ -6,15 +6,15 @@ const cors = require('../modules/cors').cors;
 
 // CORS middleware
 router.all('/login', cors({methods: ["POST"]}));
-router.all('/refresh', cors());
+router.all('/refresh', cors({methods: ["POST"]}));
 router.all('/logout', cors());
 router.all('/terminate', cors());
 
 // POST Routes.
 router.post('/login', userController.validateCredentials, oauth.newSession);
+router.post('/refresh', oauth.extendSession);
 
 // GET Routes.
-router.get('/refresh', oauth.extendSession);
 router.get('/logout', oauth.logout);
 router.get('/terminate', oauth.endSessions);
 
