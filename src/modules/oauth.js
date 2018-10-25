@@ -96,45 +96,43 @@ module.exports.extendSession = async (req, res, next) => {
   // refreshSession
   // Updates the refresh timestamp of the session if minimum_validity minutes have passed.
   try {
-    var session = await db.oneOrNone(`UPDATE $1~
-                                        SET refreshed=NOW()
-                                        WHERE tokenid=$2
-                                        AND userid=$3
-                                        AND refreshed<$4
-                                        RETURNING userid,tokenid,refreshed`,
-				     [psql.table_auth_session,
-				      token.payload.tokenid,
-				      token.payload.uid,
-				      new Date(Date.now()-minimum_validity*60000).toISOString()]
-				    );
+    var session = await db.task(
+      async (t) => {
+	var old = await db.oneOrNone(`SELECT refreshed FROM $1~
+                                            WHERE tokenid=$2
+                                            AND userid=$3`,
+	   				   [psql.table_auth_session,
+					    token.payload.tokenid,
+					    token.payload.uid]);
+	if (!old) {
+	  return {error: "refresh token revoked"};
+	}
+	else if ((new Date(old.refreshed)).getTime() >= Date.now()-minimum_validity*60000) {
+	    return {error: `auth token min_valid`,
+		    min_valid: minimum_validity,
+		    last_refresh: old.refreshed};
+	}
+	else {
+	  var upd = await t.oneOrNone(`UPDATE $1~ SET refreshed=NOW()
+                                       WHERE tokenid=$2
+                                       AND userid=$3
+                                       RETURNING userid,tokenid,refreshed`,
+				      [psql.table_auth_session,
+				       token.payload.tokenid,
+				       token.payload.uid]
+				     );
+	}
+	return upd;
+      });
   } catch (err) {
     log.error(`extendSession(refreshSession) 500 - database error: ${err}`);
   }
 
-  if (!session) {
-    // findSession
-    // Try to find session to report issue to the user.
-    try {
-      session = await db.oneOrNone(`SELECT refreshed FROM $1~
-                                    WHERE tokenid=$2
-                                    AND userid=$3`,
-				   [psql.table_auth_session,
-				    token.payload.tokenid,
-				    token.payload.uid]);
-    } catch (err) {
-      log.error(`extendSession(findSession) 500 - database error: ${err}`);
-    }
-
-    if (!session) {
-      let e = {error: "token revoked"};
-      log.info(`extendSession(findSession) 401 - ${e.error}`);
-      return res.status(401).json(e);
-    } else {
-      let e = {error: `auth token minimum validity is ${minimum_validity} minutes (last refresh ${session.refreshed})`};
-      log.info(`extendSession(findSession) 400 - ${e.error}`);
-      return res.status(400).json(e);
-    }
-  }
+  if (session.error) {
+    let status = /revoked/.test(session.error) ? 401 : 400;
+    log.info(`extendSession(refreshSession) ${status} - ${session.error}`);
+    return res.status(status).json(session);
+  } 
 
   // generateAccessToken
   // Creates a valid access token.
