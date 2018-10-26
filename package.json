@@ -34,6 +34,7 @@
     "xregexp": "^4.2.0"
   },
   "devDependencies": {
+    "mocha": "^5.2.0",
     "nodemon": "^1.18.3",
     "supertest": "^3.3.0"
   }
