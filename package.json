@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node ./src/server",
     "devstart": "nodemon ./src/server",
-    "docker": "docker-compose -f docker/docker-compose.yml up"
+    "dev-server": "docker-compose -f docker/docker-dev.yml up",
+    "test-server": "docker-compose -f docker/docker-test.yml up --abort-on-container-exit",
+    "test": "mocha"
   },
   "repository": {
     "type": "git",

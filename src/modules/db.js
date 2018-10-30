@@ -11,7 +11,7 @@ const initOptions = {
 const conn = {
   host: config.database_host,
   port: 5432,
-  database: config.database_name,
+  database: process.env.POSTGRES_DB,
   user: process.env.POSTGRES_USER,
   password: process.env.POSTGRES_PASSWORD
 };
