@@ -33,7 +33,7 @@ module.exports.createWebUser = async (req, res, next) => {
 
   if (exists) {
     log.info(`createWebUser(checkExists) 400 - email already in use: ${user.email}`);
-    return res.status(400).json({"error": "email already in use"});
+    return res.status(400).json({"error": "email exists"});
   }
 
   // hashPassword.
