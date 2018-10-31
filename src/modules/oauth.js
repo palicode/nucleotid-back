@@ -43,7 +43,7 @@ module.exports.newSession =  async (req, res, next) => {
     var session = await db.one(`INSERT INTO $1~(userid)
 			        VALUES($2)
                                 RETURNING tokenid,issued;`,
-			       [psql.table_auth_session,
+			       [psql.tables.auth_session,
 				userId]
 			      );
   } catch(err) {
@@ -101,7 +101,7 @@ module.exports.extendSession = async (req, res, next) => {
 	var old = await db.oneOrNone(`SELECT refreshed FROM $1~
                                             WHERE tokenid=$2
                                             AND userid=$3`,
-	   				   [psql.table_auth_session,
+	   				   [psql.tables.auth_session,
 					    token.payload.tokenid,
 					    token.payload.uid]);
 	if (!old) {
@@ -117,7 +117,7 @@ module.exports.extendSession = async (req, res, next) => {
                                        WHERE tokenid=$2
                                        AND userid=$3
                                        RETURNING userid,tokenid,refreshed`,
-				      [psql.table_auth_session,
+				      [psql.tables.auth_session,
 				       token.payload.tokenid,
 				       token.payload.uid]
 				     );
@@ -169,7 +169,7 @@ module.exports.logout = async (req,res,next) => {
                                      WHERE userid=$2\
                                      AND CAST(tokenid AS text) LIKE $3 || '%'\
                                      RETURNING tokenid",
-				    [psql.table_auth_session,
+				    [psql.tables.auth_session,
 				     req.auth.userid,
 				     req.auth.token.payload.tokenid]
 				   );
@@ -208,7 +208,7 @@ module.exports.endSessions = async (req,res,next) => {
   try {
     await db.none("DELETE FROM $1~\
                      WHERE userid=$",
-		  [psql.table_auth_session,
+		  [psql.tables.auth_session,
 		   req.auth.userid]
 		 );
   } catch(err) {

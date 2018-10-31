@@ -24,7 +24,7 @@ module.exports.createWebUser = async (req, res, next) => {
   // Checks if user.email already exists in the database.
   try {
     var exists = await db.oneOrNone("SELECT email FROM $1~ WHERE email=$2",
-    				    [psql.table_user,
+    				    [psql.tables.user,
 				     user.email]);
   } catch (err) {
     log.error('createWehUser(checkExists) 500 - database error: ' + err);
@@ -55,7 +55,7 @@ module.exports.createWebUser = async (req, res, next) => {
                created)\
        VALUES ($2,$3,$4,$5,$6,$7,$8,$9)\
        RETURNING id",
-      [psql.table_user,
+      [psql.tables.user,
        user.given_name,
        user.family_name,
        user.email,
@@ -79,7 +79,7 @@ module.exports.createWebUser = async (req, res, next) => {
   try {
     await db.query("INSERT INTO $1~(token, user_id, validated, created)\
                     VALUES ($2,$3,$4,$5)",
-		   [psql.table_email_token,
+		   [psql.tables.email_token,
 		    etoken,
 		    userid.id,
 		    false,
@@ -91,7 +91,7 @@ module.exports.createWebUser = async (req, res, next) => {
       // deleteUserTokenError
       // If we had issues generating the token, delete the user.
       await db.query("DELETE FROM $1~ WHERE id=$2",
-		     [psql.table_user,
+		     [psql.tables.user,
 		      userid.id]
 		    );
     } catch (err) {
@@ -135,10 +135,10 @@ module.exports.validateEmail = async (req, res, next) => {
   // Get token from database.
   try {
     var dbtoken = await db.oneOrNone("SELECT user_id, validated FROM $1~ WHERE token=$2",
-				   [psql.table_email_token,
+				   [psql.tables.email_token,
 				    etoken]);
   } catch (err) {
-    log.info(`validateEmail(checkTokenDB) 500 - database error: ${err}`);
+    log.error(`validateEmail(checkTokenDB) 500 - database error: ${err}`);
     return res.status(500).end();
   }
 
@@ -157,11 +157,11 @@ module.exports.validateEmail = async (req, res, next) => {
   // Set web_active true in user_profile.
   try {
     await db.query("UPDATE $1~ SET web_active=TRUE WHERE id=$2",
-		   [psql.table_user,
+		   [psql.tables.user,
 		    dbtoken.user_id]);
     
   } catch (err) {
-    log.info(`validateEmail(activateUser) 500 - database error: ${err}`);
+    log.error(`validateEmail(activateUser) 500 - database error: ${err}`);
     return res.status(500).end();
   }
 
@@ -171,13 +171,13 @@ module.exports.validateEmail = async (req, res, next) => {
   // Set token as validated so that it cannot be used twice.
   try {
     await db.query("UPDATE $1~ SET validated=$2, modified=$3 WHERE token=$4",
-		   [psql.table_email_token,
+		   [psql.tables.email_token,
 		    true,
 		    (new Date()).toISOString(),
 		    etoken]
 		  );
   } catch (err) {
-    log.info(`validateEmail(expireToken) 500 - database error: ${err}`);
+    log.error(`validateEmail(expireToken) 500 - database error: ${err}`);
     return res.status(500).end();
   }
 
@@ -188,14 +188,14 @@ module.exports.validateEmail = async (req, res, next) => {
   try {
     var team = await db.one("INSERT INTO $1~(team_name, ownerId, personal, created)\
                              VALUES($2,$3,$4,$5) RETURNING id",
-			    [psql.table_team,
+			    [psql.tables.team,
 			     "My Projects",
 			     dbtoken.user_id,
 			     true,
 			     (new Date()).toISOString()]
 			   );
   } catch (err) {
-    log.info(`validateEmail(createPersonalTeam) 500 - database error: ${err}`);
+    log.error(`validateEmail(createPersonalTeam) 500 - database error: ${err}`);
     return res.status(500).end();
   };
 
@@ -318,7 +318,7 @@ module.exports.validateCredentials = async (req, res, next) => {
   // Get user from database.
   try {
     var user = await db.oneOrNone("SELECT id, email, password FROM $1~ WHERE email=$2",
-				  [psql.table_user,
+				  [psql.tables.user,
 				  req.body.email]);
   } catch (err) {
     log.error(`validateCredentials(findUser) 500 - database error: ${err}`);
@@ -398,10 +398,10 @@ module.exports.validateNewUser = async (req, res, next) => {
   // password must not be in blacklisted database.
   try {
     var blacklist = await db.oneOrNone('SELECT password FROM $1~ WHERE password=$2',
-				       [psql.table_password_blacklist,
+				       [psql.tables.password_blacklist,
 					req.body.password]);
   } catch (err) {
-    log.info(`validateNewUser(validatePasswordBlacklist) 500 - database error: ${err}`);
+    log.error(`validateNewUser(validatePasswordBlacklist) 500 - database error: ${err}`);
     return res.status(500).end();
   }
 
@@ -471,7 +471,7 @@ module.exports.getMyNotebooks = async (req, res, next) => {
 
   // Get all user notebooks.
   try {
-    var notebooks = await db.manyOrNone("SELECT * FROM $1~ WHERE ownerId=$2", [psql.table_notebook, user_id]);
+    var notebooks = await db.manyOrNone("SELECT * FROM $1~ WHERE ownerId=$2", [psql.tables.notebook, user_id]);
   } catch (err) {
     // DB error, return '500 Internal server error'.
     return res.status(500).end();
@@ -504,7 +504,7 @@ module.exports.getMySharedNotebooks = async (req, res, next) => {
        AND projectId IN (SELECT projectId FROM $2\
                          WHERE userId=$3\
                          AND write=true)"
-      , [psql.table_notebook, psql.table_project_permissions, user_id]);
+      , [psql.tables.notebook, psql.tables.project_permissions, user_id]);
   } catch (err) {
     // DB error, return '500 Internal server error'.
     res.status(500);
@@ -531,7 +531,7 @@ module.exports.getPublicNotebooks = async (req, res, next) => {
 
   // Get all public notebooks owned by target_id.
   try {
-    var notebooks = await db.manyOrNone("SELECT * FROM $1~ WHERE ownerId=$2 AND public=TRUE", [psql.table_notebook, target_id]);
+    var notebooks = await db.manyOrNone("SELECT * FROM $1~ WHERE ownerId=$2 AND public=TRUE", [psql.tables.notebook, target_id]);
   } catch (err) {
     // DB error, return '500 Internal server error'.
     res.status(500);
@@ -570,7 +570,7 @@ module.exports.getSharedNotebooks = async (req, res, next) => {
       "SELECT * FROM $1~\
        WHERE ownerId=$3\
        AND projectId IN (SELECT projectId FROM $2 WHERE userId=$4 AND write=TRUE)"
-      , [psql.table_notebook, psql.table_project_permissions, target_id, user_id]);
+      , [psql.tables.notebook, psql.tables.project_permissions, target_id, user_id]);
   } catch (err) {
     // DB error, return '500 Internal server error'.
     res.status(500);
