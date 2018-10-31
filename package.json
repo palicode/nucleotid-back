@@ -22,7 +22,6 @@
     "bluebird": "^3.5.2",
     "express": "^4.16.3",
     "express-session": "^1.15.6",
-    "http-errors": "^1.7.0",
     "morgan": "^1.9.0",
     "nodemailer": "^4.6.8",
     "passport": "^0.4.0",
