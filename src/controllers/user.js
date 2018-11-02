@@ -363,6 +363,15 @@ function isValidDate(d) {
 module.exports.validateNewUser = async (req, res, next) => {
   log.log('debug', `validateNewUser(POST): ${JSON.stringify(req.body)}`);
 
+  if (!req.body.email)
+    return res.status(400).json({"error": "email required"});
+  if (!req.body.given_name)
+    return res.status(400).json({"error": "given_name required"});
+  if (!req.body.family_name)
+    return res.status(400).json({"error": "family_name required"});
+  if (!req.body.password)
+    return res.status(400).json({"error": "password required"});
+
   // validateEmail
   // email: email format
   if (!validator.isLength(req.body.email, {max: email_opts.max_len}) || !validator.isEmail(req.body.email)) {
@@ -371,9 +380,10 @@ module.exports.validateNewUser = async (req, res, next) => {
   }
 
   // validateGivenName
-  // given_name: unicode single word, max 20 char
-  if (!validator.isLength(req.body.given_name, {max:20}) ||
-      !re.unicodeWord(req.body.given_name)) {
+  // given_name: unicode max two words, min 2 char and max 25 char
+  if (!validator.isLength(req.body.given_name, {min:2, max:25}) ||
+      req.body.given_name.split(' ').length > 2 ||
+      !re.unicodeWords(req.body.given_name)) {
     log.info(`validateNewUser(validateGivenName) 400 - invalid given_name format: ${req.body.given_name}`);
     return res.status(400).json({"error": "invalid given_name format"});
   }

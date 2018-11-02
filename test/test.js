@@ -5,7 +5,7 @@ var assert = require('assert');
 // New users test
 new_users = [
   {
-    test: 'bad email 1',
+    test: 'email format 1',
     status: 400,
     error: 'email',
     user: {
@@ -17,7 +17,7 @@ new_users = [
     }
   },
   {
-    test: 'bad email 2',
+    test: 'email format 2',
     status: 400,
     error: 'email',
     user: {
@@ -29,7 +29,7 @@ new_users = [
     }
   },
   {
-    test: 'bad email 3',
+    test: 'email format 3',
     status: 400,
     error: 'email',
     user: {
@@ -41,7 +41,7 @@ new_users = [
     }
   },
   {
-    test: 'bad email 4',
+    test: 'email format 4',
     status: 400,
     error: 'email',
     user: {
@@ -53,7 +53,7 @@ new_users = [
     }
   },
   {
-    test: 'bad email 5',
+    test: 'email format 5',
     status: 400,
     error: 'email',
     user: {
@@ -65,7 +65,7 @@ new_users = [
     }
   },
   {
-    test: 'bad email 6',
+    test: 'email format 6',
     status: 400,
     error: 'email',
     user: {
@@ -77,7 +77,7 @@ new_users = [
     }
   },
   {
-    test: 'bad email 7',
+    test: 'email format 7',
     status: 400,
     error: 'email',
     user: {
@@ -89,7 +89,7 @@ new_users = [
     }
   },
   {
-    test: 'bad email 8',
+    test: 'email format 8',
     status: 400,
     error: 'email',
     user: {
@@ -100,6 +100,115 @@ new_users = [
       birthdate: '1992-03-21'
     }
   },
+  {
+    test: 'email format 9',
+    status: 400,
+    error: 'email',
+    user: {
+      email: '',
+      given_name: 'Mike',
+      family_name: 'Springfield',
+      password: 'password',
+      birthdate: '1992-03-21'
+    }
+  },
+  {
+    test: 'email format 10',
+    status: 400,
+    error: 'email',
+    user: {
+      email: 'mi(k)e@mike.com',
+      given_name: 'Mike',
+      family_name: 'Springfield',
+      password: 'password',
+      birthdate: '1992-03-21'
+    }
+  },
+  {
+    test: 'email length',
+    status: 400,
+    error: 'email',
+    user: {
+      email: 'jdufkgjfheurythgjfkdlskdjfhgytkejdhncjkfkdj@jksajsdjsdsd.com',
+      given_name: 'Mike',
+      family_name: 'Springfield',
+      password: 'password',
+      birthdate: '1992-03-21'
+    }
+  },
+  {
+    test: 'given_name format 1',
+    status: 400,
+    error: 'given_name',
+    user: {
+      email: 'mike@mike.com',
+      given_name: 'Michael van Gogh sin',
+      family_name: 'Springfield',
+      password: 'password',
+      birthdate: '1992-03-21'
+    }
+  },
+  {
+    test: 'given_name format 2',
+    status: 400,
+    error: 'given_name',
+    user: {
+      email: 'mike@mike.com',
+      given_name: 'M',
+      family_name: 'Springfield',
+      password: 'password',
+      birthdate: '1992-03-21'
+    }
+  },
+  {
+    test: 'given_name format 3',
+    status: 400,
+    error: 'given_name',
+    user: {
+      email: 'mike@mike.com',
+      given_name: 'Michaelangelodasouzabatmanbinsupraman',
+      family_name: 'Springfield',
+      password: 'password',
+      birthdate: '1992-03-21'
+    }
+  },
+  {
+    test: 'given_name format 4',
+    status: 400,
+    error: 'given_name',
+    user: {
+      email: 'mike@mike.com',
+      given_name: 'M1ke',
+      family_name: 'Springfield',
+      password: 'password',
+      birthdate: '1992-03-21'
+    }
+  },
+    {
+    test: 'given_name format 5',
+    status: 400,
+    error: 'given_name',
+    user: {
+      email: 'mike@mike.com',
+      given_name: 'Mike (God)',
+      family_name: 'Springfield',
+      password: 'password',
+      birthdate: '1992-03-21'
+    }
+  },
+  {
+    test: 'given_name format 6',
+    status: 400,
+    error: 'given_name',
+    user: {
+      email: 'mike@mike.com',
+      given_name: 'Mike*',
+      family_name: 'Springfield',
+      password: 'password',
+      birthdate: '1992-03-21'
+    }
+  },
+
   {
     test: 'correct format',
     status: 200,
