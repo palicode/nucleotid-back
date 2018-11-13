@@ -395,7 +395,7 @@ new_users = [
       given_name: 'Mike',
       family_name: 'Springfield',
       password: 'thisisagoodpassword',
-      birthdate: '1992-03'
+      birthdate: '1992--03'
     }
   },
   {
@@ -477,7 +477,7 @@ new_users = [
       email: 'mike@mike.com',
       given_name: 'Mike',
       family_name: 'Springfield',
-      password: 'password',
+      password: 'notblacklistedpwd',
       birthdate: '1992-03-21'
     }
   },
@@ -489,7 +489,7 @@ new_users = [
       email: 'mike@mike.com',
       given_name: 'John',
       family_name: 'Simpson',
-      password: 'password',
+      password: 'anotherOKpassword',
       birthdate: '1981-09-20'
     }
   }
