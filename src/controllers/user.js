@@ -391,7 +391,7 @@ module.exports.validateNewUser = async (req, res, next) => {
   // validateFamilyName
   // family_name: unicode multiple words, max 50 char, max 3 words
   if (!re.unicodeWords(req.body.family_name, '-') ||
-      !validator.isLength(req.body.family_name, {max:50}) ||
+      !validator.isLength(req.body.family_name, {min:2, max:50}) ||
       req.body.family_name.split(' ').length > 3) {
     log.info(`validateNewUser(validateFamilyName) 400 - invalid family_name format: ${req.body.family_name}`);
     return res.status(400).json({"error": "invalid family_name format"});
