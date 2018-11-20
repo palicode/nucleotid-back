@@ -148,7 +148,9 @@ const create_tables = [
        issued       timestamptz   NOT NULL DEFAULT NOW(),\
        refreshed    timestamptz   NOT NULL DEFAULT NOW()\
    );",
-  "CREATE UNIQUE INDEX IF NOT EXISTS token_userid ON auth_session(tokenid, userid);"
+  "CREATE UNIQUE INDEX IF NOT EXISTS token_userid ON auth_session(tokenid, userid);",
+  "CREATE INDEX IF NOT EXISTS token_userid ON auth_session(userid);"
+  
 ];
 
 const createDBTables = async () => {
