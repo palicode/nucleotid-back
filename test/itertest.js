@@ -14,6 +14,13 @@ module.exports = (test, test_cases, path, method='post') => {
       if (test_case.data) {
 	out = out.send(test_case.data);
       }
+
+      // Set headers.
+      if (test_case.headers) {
+	test_case.headers.forEach((header) => {
+	  out = out.set(header[0], header[1]);
+	});
+      }
       
       // Expect HTTP status code.
       out = out.expect(test_case.status);
