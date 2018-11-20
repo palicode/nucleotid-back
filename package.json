@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node ./src/server",
     "devstart": "nodemon ./src/server",
-    "docker": "docker-compose -f docker/docker-compose.yml up"
+    "dev-server": "docker-compose -f docker/docker-dev.yml up",
+    "test-server": "docker-compose -f docker/docker-test.yml up --abort-on-container-exit",
+    "test": "mocha"
   },
   "repository": {
     "type": "git",
@@ -34,6 +36,8 @@
     "xregexp": "^4.2.0"
   },
   "devDependencies": {
-    "nodemon": "^1.18.3"
+    "mocha": "^5.2.0",
+    "nodemon": "^1.18.3",
+    "supertest": "^3.3.0"
   }
 }

@@ -11,7 +11,7 @@ const initOptions = {
 const conn = {
   host: config.database_host,
   port: 5432,
-  database: config.database_name,
+  database: process.env.POSTGRES_DB,
   user: process.env.POSTGRES_USER,
   password: process.env.POSTGRES_PASSWORD
 };
@@ -41,19 +41,24 @@ module.exports.updateModifiedById = async (table, id) => {
 /*
 ** DATABASE TABLES
 */
-module.exports.table_password_blacklist = 'password_blacklist';
-module.exports.table_email_token = 'email_token';
-module.exports.table_user = 'user_profile';
-module.exports.table_team = 'team_profile';
-module.exports.table_team_member = 'team_member';
-module.exports.table_team_permissions = 'team_permissions';
-module.exports.table_project = 'project';
-module.exports.table_project_permissions = 'project_permissions';
-module.exports.table_notebook = 'notebook';
-module.exports.table_notebook_step = 'notebook_step';
-module.exports.table_auth_session = 'auth_session';
 
-var tables = [
+const tables = {
+  password_blacklist : 'password_blacklist',
+  email_token : 'email_token',
+  user : 'user_profile',
+  team : 'team_profile',
+//  team_member : 'team_member',
+  team_permissions : 'team_permissions',
+  project : 'project',
+  project_permissions : 'project_permissions',
+  notebook : 'notebook',
+  notebook_step : 'notebook_step',
+  auth_session : 'auth_session',
+};
+
+module.exports.tables = tables;
+
+const create_tables = [
   "CREATE TABLE IF NOT EXISTS password_blacklist (\
        password            varchar(30)  PRIMARY KEY\
   );",
@@ -143,13 +148,36 @@ var tables = [
        issued       timestamptz   NOT NULL DEFAULT NOW(),\
        refreshed    timestamptz   NOT NULL DEFAULT NOW()\
    );",
-  "CREATE UNIQUE INDEX IF NOT EXISTS token_userid ON auth_session(tokenid, userid);"
+  "CREATE UNIQUE INDEX IF NOT EXISTS token_userid ON auth_session(tokenid, userid);",
+  "CREATE INDEX IF NOT EXISTS token_userid ON auth_session(userid);"
+  
 ];
 
-module.exports.createDBTables = async () => {
+const createDBTables = async () => {
   try {
-    for (var i = 0; i < tables.length; i++) {
-      await db.none(tables[i]);
+    for (var i = 0; i < create_tables.length; i++) {
+      await db.none(create_tables[i]);
+    }
+  } catch (err) {
+    throw err;
+  }
+};
+
+module.exports.createDBTables = createDBTables;
+
+module.exports.wipeDBTables = async () => {
+
+  // Create tables.
+  try {
+    await createDBTables();
+  } catch(err) {
+    throw err;
+  }
+
+  // Clear table contents.
+  try {
+    for (tn in tables) {
+      await db.none("DELETE FROM $1~", tables[tn]);
     }
   } catch (err) {
     throw err;

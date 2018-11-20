@@ -21,7 +21,7 @@ module.exports.initialize = function initialize(options) {
   signature_key_access = options.access_key || options.key;
   signature_key_refresh = options.refresh_key || options.key;
   token_validity = options.max_validity || 35;
-  minimum_validity = options.min_validity || 5;
+  minimum_validity = options.min_validity === undefined ? 5 : options.minimum_validity;
 
   return authValidation;
 };
@@ -43,7 +43,7 @@ module.exports.newSession =  async (req, res, next) => {
     var session = await db.one(`INSERT INTO $1~(userid)
 			        VALUES($2)
                                 RETURNING tokenid,issued;`,
-			       [psql.table_auth_session,
+			       [psql.tables.auth_session,
 				userId]
 			      );
   } catch(err) {
@@ -93,6 +93,13 @@ module.exports.extendSession = async (req, res, next) => {
     return res.status(400).json(token);
   }
 
+  // Check if tokenid is UUIDv4 format
+  if (!(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")).test(token.payload.tokenid)) {
+    let e = {error: "wrong tokenid format"};
+    log.info(`extendSession(validateToken) 400 - ${e.error}`);
+    return res.status(400).json(e);
+  }
+
   // refreshSession
   // Updates the refresh timestamp of the session if minimum_validity minutes have passed.
   try {
@@ -101,7 +108,7 @@ module.exports.extendSession = async (req, res, next) => {
 	var old = await db.oneOrNone(`SELECT refreshed FROM $1~
                                             WHERE tokenid=$2
                                             AND userid=$3`,
-	   				   [psql.table_auth_session,
+	   				   [psql.tables.auth_session,
 					    token.payload.tokenid,
 					    token.payload.uid]);
 	if (!old) {
@@ -117,7 +124,7 @@ module.exports.extendSession = async (req, res, next) => {
                                        WHERE tokenid=$2
                                        AND userid=$3
                                        RETURNING userid,tokenid,refreshed`,
-				      [psql.table_auth_session,
+				      [psql.tables.auth_session,
 				       token.payload.tokenid,
 				       token.payload.uid]
 				     );
@@ -126,6 +133,7 @@ module.exports.extendSession = async (req, res, next) => {
       });
   } catch (err) {
     log.error(`extendSession(refreshSession) 500 - database error: ${err}`);
+    return res.status(500).end();
   }
 
   if (session.error) {
@@ -169,7 +177,7 @@ module.exports.logout = async (req,res,next) => {
                                      WHERE userid=$2\
                                      AND CAST(tokenid AS text) LIKE $3 || '%'\
                                      RETURNING tokenid",
-				    [psql.table_auth_session,
+				    [psql.tables.auth_session,
 				     req.auth.userid,
 				     req.auth.token.payload.tokenid]
 				   );
@@ -178,10 +186,10 @@ module.exports.logout = async (req,res,next) => {
     return res.status(500).end();
   }
 
-  if (!uuids) {
+  if (uuids === undefined || uuids.length == 0) {
     let e = {error: "session does not exist"};
-    log.info(`logout(revokeSession) 400 - ${e.error}`);
-    return res.status(400).json(e);
+    log.info(`logout(revokeSession) 401 - ${e.error}`);
+    return res.status(401).json(e);
   }
 
   uuids.forEach((uuid) => log.info(`logout(revokeSession) revoked session: ${req.auth.token.payload.tokenid}`));
@@ -203,17 +211,29 @@ module.exports.endSessions = async (req,res,next) => {
     return res.status(401).json(e);
   }
 
+  //TODO: Check if session pointed by auth token is still active.
+
   // revokeAllSessions
   // Deletes all session records for userid from the sessions database.
   try {
-    await db.none("DELETE FROM $1~\
-                     WHERE userid=$",
-		  [psql.table_auth_session,
-		   req.auth.userid]
+    var uuids = await db.manyOrNone("DELETE FROM $1~\
+                     WHERE userid IN \
+                     (SELECT userid FROM $2~ WHERE userid=$3 AND CAST(tokenid AS text) LIKE $4 || '%')\
+                     RETURNING tokenid",
+		  [psql.tables.auth_session,
+		   psql.tables.auth_session,
+		   req.auth.userid,
+		   req.auth.token.payload.tokenid]
 		 );
   } catch(err) {
     log.error(`endSessions(revokeAllSessions) 500 - database error: ${err}`);
     return res.status(500).end();
+  }
+
+  if (uuids === undefined || uuids.length == 0) {
+    let e = {error: "session does not exist"};
+    log.info(`endSessions(revokeAllSessions) 401 - ${e.error}`);
+    return res.status(401).json(e);
   }
 
   log.info(`endSessions(revokeAllSession) revoked all sessions for userid: ${req.auth.userid}`);
@@ -259,7 +279,7 @@ function authValidation(req, res, next) {
 
   if (token.error) {
     log.info(`authValidation(validateToken) 400 - ${token.error}`);
-    return res.status(400).json(token.error);
+    return res.status(400).json(token);
   }
 
   // Register auth data in request.
@@ -393,7 +413,7 @@ function validateRefreshToken(token64) {
 
   // Check payload info.
   if (token.payload.tokenid === undefined || token.payload.uid === undefined) {
-    return {"error":"invalid refresh token format"};
+    return {"error":"invalid refresh token payload"};
   }
 
   // Check signature.

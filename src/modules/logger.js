@@ -9,20 +9,25 @@ const path = require('path');
   silly: 5 
 */
 
+const log_format = winston.format.printf(info => {
+  return `${info.timestamp} ${info.level}: ${info.message}`;
+});
+
 const logger = winston.createLogger({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
-  format: winston.format.json(),
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    log_format
+  ),
   transports: [
     //
     // - Write to all logs with level `info` and below to `combined.log` 
     // - Write all logs error (and below) to `error.log`.
     //
     new winston.transports.File({ filename: path.join(__dirname, '../../logs/error.log'),
-				  timestamp: true,
 				  level: 'error'
 				}),
-    new winston.transports.File({ filename: path.join(__dirname,'../../logs/combined.log'),
-				  timestamp: true
+    new winston.transports.File({ filename: path.join(__dirname,'../../logs/combined.log')
 				})
   ]
 });
@@ -34,7 +39,10 @@ const logger = winston.createLogger({
 //if (process.env.NODE_ENV !== 'production') {
 if (process.env.NODE_ENV === 'dev') {
   logger.add(new winston.transports.Console({
-    format: winston.format.simple()
+    format: winston.combine(
+      winston.format.colorize(),
+      winston.format.simple()
+    )
   }));
 }
 

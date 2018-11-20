@@ -1,4 +1,5 @@
 env
 crt
-db/data
+db
+logs
 node_modules

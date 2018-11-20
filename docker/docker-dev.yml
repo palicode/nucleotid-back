@@ -1,0 +1,43 @@
+version: '2'
+services:
+  db:
+    image: postgres
+    env_file:
+      - ../env/dev/db.env
+# This maps the ports of the docker machine to localhost, so localhost:5432 is mapped to dbhost:5432.
+#    ports:
+#      - "5432:5432"
+    networks:
+      nucleotid_net:
+        ipv4_address: 192.168.100.3
+    volumes:
+      - ../db/dev/data:/var/lib/postgresql/data
+
+  node:
+    image: node:8
+    working_dir: /app
+    command: bash -c "npm install && export NODE_ENV=dev && export DEBUG=nucleotid-back:* && npm run devstart"
+    env_file:
+      - ../env/dev/db.env
+      - ../env/dev/node.env
+    depends_on:
+      - db
+#    ports:
+#      - "443:443"
+#      - "3443:3443"
+    networks:
+      nucleotid_net:
+        ipv4_address: 192.168.100.2
+    volumes:
+      - ../:/app
+
+networks:
+  nucleotid_net:
+    driver: bridge
+    driver_opts:
+      com.docker.network.enable_ipv6: "false"
+    ipam:
+      driver: default
+      config:
+      - subnet: 192.168.100.0/24
+        gateway: 192.168.100.1

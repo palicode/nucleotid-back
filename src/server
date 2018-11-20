@@ -6,9 +6,9 @@ var server;
 
 log.info(`Node server (NODE_ENV = ${process.env.NODE_ENV})`);
 
-run_server();
+run_checks();
 
-async function run_server() {
+async function run_checks() {
   
   log.info('checking server dependencies before startup...');
   
@@ -56,8 +56,8 @@ function start_server () {
   https_app.set('port', https_port);
 
   const ssl_options = {
-    key: fs.readFileSync('info/nucleotid-dev.key'),
-    cert: fs.readFileSync('info/nucleotid-dev.crt')
+    key: fs.readFileSync('crt/nucleotid-dev.key'),
+    cert: fs.readFileSync('crt/nucleotid-dev.crt')
   };
 
   server = https.createServer(ssl_options,https_app);

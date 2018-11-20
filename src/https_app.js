@@ -3,7 +3,6 @@ var path        = require('path');
 var morgan      = require('morgan');
 var log         = require('./modules/logger').logmodule(module);
 var psql        = require('./modules/db');
-var passport    = require('./modules/passport');
 var oauth       = require('./modules/oauth');
 var cors        = require('./modules/cors');
 var mailer      = require('./modules/mailer');
@@ -26,15 +25,23 @@ log.info('initialize mailer module with address: ' + process.env.NUCLEOTID_MAILE
 mailer.initialize({email: process.env.NUCLEOTID_MAILER_ADDRESS,
 		   password: process.env.NUCLEOTID_MAILER_PASSWORD});
 
+// Configure OAUTH authentication.
+var oauth_options = {
+  key: process.env.NUCLEOTID_OAUTH_SIGNATURE_SECRET || 'AuthSignatureSecret',
+  min_validity: process.env.NODE_ENV == "test" ? 0 : 5
+};
+
+
 // Initialize app.
 log.info(`initialize express`);
 var app = express();
 // Set middleware.
-app.use(morgan('dev'));
+if (process.env.NODE_ENV === 'dev') {
+  app.use(morgan('dev'));
+}
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
-app.use(oauth.initialize({key: process.env.NUCLEOTID_OAUTH_SIGNATURE_SECRET || 'AuthSignatureSecret'}));
-app.use(passport.initialize());
+app.use(oauth.initialize(oauth_options));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Use routes.
