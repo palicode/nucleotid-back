@@ -81,6 +81,204 @@ var tests_login = [
   }
 ];
 
+var tests_refresh = [
+  {
+    test: 'missing token',
+    status: 400,
+    error: 'refresh_token',
+  },
+  {
+    test: 'fake token',
+    status: 400,
+    error: 'token.+format',
+    data: {
+      refresh_token: "123"
+    }
+  },
+  {
+    test: 'fake token 2',
+    status: 400,
+    error: 'token.+format',
+    data: {
+      refresh_token: "uafajhFAfjfdhfsjfsjfsd.ajhajfhJFHJKASFhsajda.AKJSF21931kdaskjAF"
+    }
+  },
+  {
+    test: 'token algorithm',
+    status: 400,
+    error: 'algorithm',
+    data: {
+      refresh_token: "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.pazba9Pj009HgANP4pTCQAHpXNU7pVbjIGff_plktSzsa9rXTGzFngaawzXGEO6Q0Hx5dtGi-dMDlIadV81o3Q"
+    }
+  },
+  {
+    test: 'token type',
+    status: 400,
+    error: 'type',
+    data: {
+      refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6Ik9BVVRIIn0.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.6MNnNHSp6cyFCso_NOu7pis7-tO3UX2zcj9DOUDFYj8"
+    }
+  },
+  {
+    test: 'token payload (missing uid and tokenid)',
+    status: 400,
+    error: 'payload',
+    data: {
+      refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+    }
+  },
+  {
+    test: 'token payload (missing uid)',
+    status: 400,
+    error: 'payload',
+    data: {
+      refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbmlkIjo5OTg5OTM0Miwid2hhdGV2ZXIiOiJ5ZWFoIn0.34_biw6F2sbZ_t0dK_sp9B7Q-syePjlSrm21R2-Ru_E"
+    }
+  },
+  {
+    test: 'token payload (missing tokenid)',
+    status: 400,
+    error: 'payload',
+    data: {
+      refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tpZCI6OTk4OTkzNDIsInVpZCI6OTZ9.r4Y7w6d3ymXKQd4o5JXGaRDHKsQE_PrnUDtaBiLg_NA"
+    }
+  },
+  {
+    test: 'wrong signature',
+    status: 400,
+    error: 'signature',
+    data: {
+      refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbmlkIjo5OTg5OTM0MiwidWlkIjo5Nn0.3XDzIaxU8Y_cP-IEIIqIEL6t-YMiJlaIxhmNkWqI_98"
+    }
+  },
+  {
+    test: 'tokenid not UUIDv4',
+    status: 400,
+    error: 'tokenid',
+    data: {
+      refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbmlkIjo5OTg5OTM0MiwidWlkIjo5Nn0.dS5dzrBmOZ5Mvoc5MyYK5mJKCTeVAK74cWlug34i1rE"
+    }
+  },
+  {
+    test: 'signed but not in DB (revoked)',
+    status: 401,
+    error: 'revoked',
+    data: {
+      refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOjEyLCJ0b2tlbmlkIjoiM2Q0ZGFhMjAtM2IxNC00NzU2LWJjODItZDk0NGZkMmFkNTg1In0.6gNh72EZeaSU5d1D7KosqUHHPnxe081iUbv1VdReQAk"
+    }
+  },
+  {
+    test: 'successful',
+    status: 200,
+    data: {
+      // Token: alg: HS256, typ: JWT, uid: 0, tokenid: 00000000-0000-1000-8000-000000000000, sign-key: AuthSignatureSecret
+      refresh_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbmlkIjoiMDAwMDAwMDAtMDAwMC0xMDAwLTgwMDAtMDAwMDAwMDAwMDAwIiwidWlkIjowfQ.or_BQ2ceUNxA307v9rg3CT5HYLnFxD6b4hIzRThYFAE'
+    }
+  }
+
+];
+
+var tests_logout = [
+  {
+    test: 'no Authentication header',
+    status: 401,
+    error: 'not authenticated'
+  },
+  {
+    test: 'wrong authentication protocol',
+    headers: [['Authentication', 'k1k3123k421k1941u210.1ij124o128121k1jf12.1j12i312310312']],
+    status: 400,
+    error: 'authentication protocol not supported'
+  },
+  {
+    test: 'fake authentication token',
+    headers: [['Authentication', 'Bearer k1k3123k421k1941u210.1ij124o128121k1jf12.1j12i312310312']],
+    status: 400,
+    error: 'token format'
+  },
+    {
+    test: 'authentication token expired',
+    // Token: alg: HS256, typ: JWT, uid: 21313, tokenid: 00000000, max_valid: 978307200000 (2001-01-01), min_valid: 946684800000 (2000-01-01), sign-key: AuthSignatureSecret
+    headers: [['Authentication', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbmlkIjoiMDAwMDAwMDAiLCJ1aWQiOjAsIm1pbl92YWxpZCI6OTQ2Njg0ODAwMDAwLCJtYXhfdmFsaWQiOjk3ODMwNzIwMDAwMH0.ZcEoQsDcfNMLX03Vyvhd3cq7eM7suREgIGzutGkmUp4']],
+    status: 400,
+    error: 'expired'
+  },
+  {
+    test: 'golden token: worng uid',
+    // Token: alg: HS256, typ: JWT, uid: 21313, tokenid: 00000000, max_valid: 4102358400000 (2099-12-31), min_valid: 946684800000 (2000-01-01), sign-key: AuthSignatureSecret
+    headers: [['Authentication', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbmlkIjoiMDAwMDAwMDAiLCJ1aWQiOjIxMzEzLCJtaW5fdmFsaWQiOjk0NjY4NDgwMDAwMCwibWF4X3ZhbGlkIjo0MTAyMzU4NDAwMDAwfQ.phLYSrM5D2ryuzQrYq7UcqZuNYdFz2moI4kkFDxUXds']],
+    status: 401,
+    error: 'session does not exist'
+  },
+  {
+    test: 'golden token: worng tokenid',
+    // Token: alg: HS256, typ: JWT, uid: 0, tokenid: 0000000f, max_valid: 4102358400000 (2099-12-31), min_valid: 946684800000 (2000-01-01), sign-key: AuthSignatureSecret
+    headers: [['Authentication', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbmlkIjoiMDAwMDAwMGYiLCJ1aWQiOjAsIm1pbl92YWxpZCI6OTQ2Njg0ODAwMDAwLCJtYXhfdmFsaWQiOjQxMDIzNTg0MDAwMDB9.DCO9VWpcEjBNRtjd1fs-RJpnEx_WOxEiXtDTzpHNuUA']],
+    status: 401,
+    error: 'session does not exist'
+  },
+  {
+    test: 'logout success: session 00000000',
+    // Token: alg: HS256, typ: JWT, uid: 0, tokenid: 00000000, max_valid: 4102358400000 (2099-12-31), min_valid: 946684800000 (2000-01-01), sign-key: AuthSignatureSecret
+    headers: [['Authentication', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbmlkIjoiMDAwMDAwMDAiLCJ1aWQiOjAsIm1pbl92YWxpZCI6OTQ2Njg0ODAwMDAwLCJtYXhfdmFsaWQiOjQxMDIzNTg0MDAwMDB9.LiaJtB6CrWJV3lD_3ng_VXLAyRfiH1qWBw9igvGrO10']],
+    status: 200
+  }
+];
+
+
+var tests_terminate = [
+    {
+    test: 'no Authentication header',
+    status: 401,
+    error: 'not authenticated'
+  },
+  {
+    test: 'wrong authentication protocol',
+    headers: [['Authentication', 'k1k3123k421k1941u210.1ij124o128121k1jf12.1j12i312310312']],
+    status: 400,
+    error: 'authentication protocol not supported'
+  },
+  {
+    test: 'fake authentication token',
+    headers: [['Authentication', 'Bearer k1k3123k421k1941u210.1ij124o128121k1jf12.1j12i312310312']],
+    status: 400,
+    error: 'token format'
+  },
+    {
+    test: 'authentication token expired',
+    // Token: alg: HS256, typ: JWT, uid: 21313, tokenid: 00000000, max_valid: 978307200000 (2001-01-01), min_valid: 946684800000 (2000-01-01), sign-key: AuthSignatureSecret
+    headers: [['Authentication', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbmlkIjoiMDAwMDAwMDAiLCJ1aWQiOjAsIm1pbl92YWxpZCI6OTQ2Njg0ODAwMDAwLCJtYXhfdmFsaWQiOjk3ODMwNzIwMDAwMH0.ZcEoQsDcfNMLX03Vyvhd3cq7eM7suREgIGzutGkmUp4']],
+    status: 400,
+    error: 'expired'
+  },
+  {
+    test: 'golden token: worng uid',
+    // Token: alg: HS256, typ: JWT, uid: 21313, tokenid: 00000000, max_valid: 4102358400000 (2099-12-31), min_valid: 946684800000 (2000-01-01), sign-key: AuthSignatureSecret
+    headers: [['Authentication', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbmlkIjoiMDAwMDAwMDAiLCJ1aWQiOjIxMzEzLCJtaW5fdmFsaWQiOjk0NjY4NDgwMDAwMCwibWF4X3ZhbGlkIjo0MTAyMzU4NDAwMDAwfQ.phLYSrM5D2ryuzQrYq7UcqZuNYdFz2moI4kkFDxUXds']],
+    status: 401,
+    error: 'session does not exist'
+  },
+  {
+    test: 'golden token: worng tokenid',
+    // Token: alg: HS256, typ: JWT, uid: 0, tokenid: 0000000f, max_valid: 4102358400000 (2099-12-31), min_valid: 946684800000 (2000-01-01), sign-key: AuthSignatureSecret
+    headers: [['Authentication', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbmlkIjoiMDAwMDAwMGYiLCJ1aWQiOjAsIm1pbl92YWxpZCI6OTQ2Njg0ODAwMDAwLCJtYXhfdmFsaWQiOjQxMDIzNTg0MDAwMDB9.DCO9VWpcEjBNRtjd1fs-RJpnEx_WOxEiXtDTzpHNuUA']],
+    status: 401,
+    error: 'session does not exist'
+  },
+  {
+    test: 'golden token: session 00000000 does not exist',
+    // Token: alg: HS256, typ: JWT, uid: 0, tokenid: 00000000, max_valid: 4102358400000 (2099-12-31), min_valid: 946684800000 (2000-01-01), sign-key: AuthSignatureSecret
+    headers: [['Authentication', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbmlkIjoiMDAwMDAwMDAiLCJ1aWQiOjAsIm1pbl92YWxpZCI6OTQ2Njg0ODAwMDAwLCJtYXhfdmFsaWQiOjQxMDIzNTg0MDAwMDB9.LiaJtB6CrWJV3lD_3ng_VXLAyRfiH1qWBw9igvGrO10']],
+    status: 401,
+    error: 'session does not exist'
+  },
+  {
+    test: 'terminate success: session 10000000',
+    // Token: alg: HS256, typ: JWT, uid: 0, tokenid: 00000000, max_valid: 4102358400000 (2099-12-31), min_valid: 946684800000 (2000-01-01), sign-key: AuthSignatureSecret
+    headers: [['Authentication', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbmlkIjoiMTAwMDAwMDAiLCJ1aWQiOjAsIm1pbl92YWxpZCI6OTQ2Njg0ODAwMDAwLCJtYXhfdmFsaWQiOjQxMDIzNTg0MDAwMDB9.e92J0wLjtJplS1tnD7WwUggSx_3IBAbkClAiaYYlTVw']],
+    status: 200
+  }
+];
 
 describe('API /auth', () => {
   describe ('Create test users', () => {
@@ -89,4 +287,14 @@ describe('API /auth', () => {
   describe ('POST /login', () => {
     itertest(test, tests_login, '/auth/login', 'post');
   });
+  describe ('POST /refresh', () => {
+    itertest(test, tests_refresh, '/auth/refresh', 'post');
+  });
+  describe ('GET /logout', () => {
+    itertest(test, tests_logout, '/auth/logout', 'get');
+  });
+  describe ('GET /terminate', () => {
+    itertest(test, tests_terminate, '/auth/terminate', 'get');
+  });
+
 });

@@ -1,14 +1,14 @@
-var app = require('../src/https_app.js');
-var test = require('supertest')(app);
-var assert = require('assert');
+const app = require('../src/https_app.js');
+const test = require('supertest')(app);
+const itertest = require('./itertest');
 
 // New users test
-new_users = [
+tests_new_user = [
   {
     test: 'missing email',
     status: 400,
     error: 'email',
-    user: {
+    data: {
       given_name: 'Mike',
       family_name: 'Springfield',
       password: 'password',
@@ -19,7 +19,7 @@ new_users = [
     test: 'missing given_name',
     status: 400,
     error: 'given_name',
-    user: {
+    data: {
       email: 'mike@mike.com',
       family_name: 'Springfield',
       password: 'password',
@@ -30,7 +30,7 @@ new_users = [
     test: 'missing family_name',
     status: 400,
     error: 'family_name',
-    user: {
+    data: {
       email: 'mike@mike.com',
       given_name: 'Mike',
       password: 'password',
@@ -41,7 +41,7 @@ new_users = [
     test: 'missing password',
     status: 400,
     error: 'password',
-    user: {
+    data: {
       email: 'mike@mike.com',
       given_name: 'Mike',
       family_name: 'Springfield',
@@ -52,7 +52,7 @@ new_users = [
     test: 'email format 1',
     status: 400,
     error: 'email',
-    user: {
+    data: {
       email: 'mike@mikecom',
       given_name: 'Mike',
       family_name: 'Springfield',
@@ -64,7 +64,7 @@ new_users = [
     test: 'email format 2',
     status: 400,
     error: 'email',
-    user: {
+    data: {
       email: 'mikemikecom',
       given_name: 'Mike',
       family_name: 'Springfield',
@@ -76,7 +76,7 @@ new_users = [
     test: 'email format 3',
     status: 400,
     error: 'email',
-    user: {
+    data: {
       email: '@domain.com',
       given_name: 'Mike',
       family_name: 'Springfield',
@@ -88,7 +88,7 @@ new_users = [
     test: 'email format 4',
     status: 400,
     error: 'email',
-    user: {
+    data: {
       email: 'mike@,com',
       given_name: 'Mike',
       family_name: 'Springfield',
@@ -100,7 +100,7 @@ new_users = [
     test: 'email format 5',
     status: 400,
     error: 'email',
-    user: {
+    data: {
       email: 'mike@domain,com',
       given_name: 'Mike',
       family_name: 'Springfield',
@@ -112,7 +112,7 @@ new_users = [
     test: 'email format 6',
     status: 400,
     error: 'email',
-    user: {
+    data: {
       email: 'mike@domain.',
       given_name: 'Mike',
       family_name: 'Springfield',
@@ -124,7 +124,7 @@ new_users = [
     test: 'email format 7',
     status: 400,
     error: 'email',
-    user: {
+    data: {
       email: '@.com',
       given_name: 'Mike',
       family_name: 'Springfield',
@@ -136,7 +136,7 @@ new_users = [
     test: 'email format 8',
     status: 400,
     error: 'email',
-    user: {
+    data: {
       email: '@',
       given_name: 'Mike',
       family_name: 'Springfield',
@@ -148,7 +148,7 @@ new_users = [
     test: 'email format 9',
     status: 400,
     error: 'email',
-    user: {
+    data: {
       email: '',
       given_name: 'Mike',
       family_name: 'Springfield',
@@ -160,7 +160,7 @@ new_users = [
     test: 'email format 10',
     status: 400,
     error: 'email',
-    user: {
+    data: {
       email: 'mi(k)e@mike.com',
       given_name: 'Mike',
       family_name: 'Springfield',
@@ -172,7 +172,7 @@ new_users = [
     test: 'email empty',
     status: 400,
     error: 'email',
-    user: {
+    data: {
       email: '',
       given_name: 'Mike',
       family_name: 'Springfield',
@@ -185,7 +185,7 @@ new_users = [
     test: 'email max length',
     status: 400,
     error: 'email',
-    user: {
+    data: {
       email: 'jdufkgjfheurythgjfkdlskdjfhgytkejdhncjkfkdj@jksajsdjsdsd.com',
       given_name: 'Mike',
       family_name: 'Springfield',
@@ -197,7 +197,7 @@ new_users = [
     test: 'given_name format 1',
     status: 400,
     error: 'given_name',
-    user: {
+    data: {
       email: 'mike@mike.com',
       given_name: 'Michael van Gogh sin',
       family_name: 'Springfield',
@@ -210,7 +210,7 @@ new_users = [
     test: 'given_name format 2',
     status: 400,
     error: 'given_name',
-    user: {
+    data: {
       email: 'mike@mike.com',
       given_name: 'M1ke',
       family_name: 'Springfield',
@@ -222,7 +222,7 @@ new_users = [
     test: 'given_name format 3',
     status: 400,
     error: 'given_name',
-    user: {
+    data: {
       email: 'mike@mike.com',
       given_name: 'Mike (God)',
       family_name: 'Springfield',
@@ -234,7 +234,7 @@ new_users = [
     test: 'given_name format 4',
     status: 400,
     error: 'given_name',
-    user: {
+    data: {
       email: 'mike@mike.com',
       given_name: 'Mike*',
       family_name: 'Springfield',
@@ -246,7 +246,7 @@ new_users = [
     test: 'given_name empty',
     status: 400,
     error: 'given_name',
-    user: {
+    data: {
       email: 'mike@mike.com',
       given_name: '',
       family_name: 'Springfield',
@@ -258,7 +258,7 @@ new_users = [
     test: 'given_name min length',
     status: 400,
     error: 'given_name',
-    user: {
+    data: {
       email: 'mike@mike.com',
       given_name: 'M',
       family_name: 'Springfield',
@@ -270,7 +270,7 @@ new_users = [
     test: 'given_name max length',
     status: 400,
     error: 'given_name',
-    user: {
+    data: {
       email: 'mike@mike.com',
       given_name: 'Michaelangelodasouzabatmanbinsupraman',
       family_name: 'Springfield',
@@ -282,7 +282,7 @@ new_users = [
     test: 'family_name format 1',
     status: 400,
     error: 'family_name',
-    user: {
+    data: {
       email: 'mike@mike.com',
       given_name: 'Mike',
       family_name: 'Springfield von Bismarck Deux',
@@ -294,7 +294,7 @@ new_users = [
     test: 'family_name format 2',
     status: 400,
     error: 'family_name',
-    user: {
+    data: {
       email: 'mike@mike.com',
       given_name: 'Mike',
       family_name: 'Springfield2',
@@ -306,7 +306,7 @@ new_users = [
     test: 'family_name format 3',
     status: 400,
     error: 'family_name',
-    user: {
+    data: {
       email: 'mike@mike.com',
       given_name: 'Mike',
       family_name: 'Springfield (Genius)',
@@ -318,7 +318,7 @@ new_users = [
     test: 'family_name format 4',
     status: 400,
     error: 'family_name',
-    user: {
+    data: {
       email: 'mike@mike.com',
       given_name: 'Mike',
       family_name: 'Springfield*von Bismarck',
@@ -330,7 +330,7 @@ new_users = [
     test: 'family_name min length',
     status: 400,
     error: 'family_name',
-    user: {
+    data: {
       email: 'mike@mike.com',
       given_name: 'Mike',
       family_name: 'S',
@@ -342,7 +342,7 @@ new_users = [
     test: 'family_name max length',
     status: 400,
     error: 'family_name',
-    user: {
+    data: {
       email: 'mike@mike.com',
       given_name: 'Mike',
       family_name: 'SpringfieldVeryLongFamilyNameThisIsMoreThanFiftyCharacters',
@@ -354,7 +354,7 @@ new_users = [
     test: 'password min length',
     status: 400,
     error: 'password',
-    user: {
+    data: {
       email: 'mike@mike.com',
       given_name: 'Mike',
       family_name: 'Springfield',
@@ -366,7 +366,7 @@ new_users = [
     test: 'password max length',
     status: 400,
     error: 'password',
-    user: {
+    data: {
       email: 'mike@mike.com',
       given_name: 'Mike',
       family_name: 'Springfield',
@@ -378,7 +378,7 @@ new_users = [
     test: 'password blacklist',
     status: 400,
     error: 'blacklist',
-    user: {
+    data: {
       email: 'mike@mike.com',
       given_name: 'Mike',
       family_name: 'Springfield',
@@ -390,7 +390,7 @@ new_users = [
     test: 'birthdate format 1',
     status: 400,
     error: 'birthdate',
-    user: {
+    data: {
       email: 'mike@mike.com',
       given_name: 'Mike',
       family_name: 'Springfield',
@@ -402,7 +402,7 @@ new_users = [
     test: 'birthdate format 2',
     status: 400,
     error: 'birthdate',
-    user: {
+    data: {
       email: 'mike@mike.com',
       given_name: 'Mike',
       family_name: 'Springfield',
@@ -414,7 +414,7 @@ new_users = [
     test: 'birthdate format 3',
     status: 400,
     error: 'birthdate',
-    user: {
+    data: {
       email: 'mike@mike.com',
       given_name: 'Mike',
       family_name: 'Springfield',
@@ -426,7 +426,7 @@ new_users = [
     test: 'birthdate format 4',
     status: 400,
     error: 'birthdate',
-    user: {
+    data: {
       email: 'mike@mike.com',
       given_name: 'Mike',
       family_name: 'Springfield',
@@ -438,7 +438,7 @@ new_users = [
     test: 'birthdate format 5',
     status: 400,
     error: 'birthdate',
-    user: {
+    data: {
       email: 'mike@mike.com',
       given_name: 'Mike',
       family_name: 'Springfield',
@@ -450,7 +450,7 @@ new_users = [
     test: 'birthdate too old',
     status: 400,
     error: 'birthdate',
-    user: {
+    data: {
       email: 'mike@mike.com',
       given_name: 'Mike',
       family_name: 'Springfield',
@@ -462,7 +462,7 @@ new_users = [
     test: 'birthdate future',
     status: 400,
     error: 'birthdate',
-    user: {
+    data: {
       email: 'mike@mike.com',
       given_name: 'Mike',
       family_name: 'Springfield',
@@ -473,11 +473,11 @@ new_users = [
   {
     test: 'correct format',
     status: 200,
-    user: {
+    data: {
       email: 'mike@mike.com',
       given_name: 'Mike',
       family_name: 'Springfield',
-      password: 'notblacklistedpwd',
+      password: 'notblacklistedpassw0rd',
       birthdate: '1992-03-21'
     }
   },
@@ -485,7 +485,7 @@ new_users = [
     test: 'email exists',
     status: 400,
     error: 'exists',
-    user: {
+    data: {
       email: 'mike@mike.com',
       given_name: 'John',
       family_name: 'Simpson',
@@ -499,20 +499,6 @@ new_users = [
 
 describe('API /user', () => {
   describe ('POST /user', () => {
-    new_users.forEach((new_user) => {
-      it(new_user.test, (done) => {
-	var out = test.post('/user/')
-	    .send(new_user.user)
-	    .expect(new_user.status);
-	if (new_user.error) {
-	  out.expect((res) => {
-	    if (!(new RegExp(new_user.error)).test(res.body.error))
-	      throw new Error(`Error message did not match provided RE (${new_user.error}): ${res.body.error}`);
-	  }).end(done);;
-	} else {
-	  out.end(done);
-	}
-      });
-    });
+    itertest(test, tests_new_user, '/user/', 'post');
   });
 });
