@@ -14,4 +14,4 @@ script:
   - npm run test-ci
 
 after_script:
-  - nyc report --reporter=text-lcov | coveralls
+  - ./node_modules/.bin/nyc report --reporter=text-lcov | ./node_modules/.bin/coveralls
