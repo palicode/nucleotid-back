@@ -8,6 +8,7 @@
     "devstart": "nodemon ./src/server",
     "dev-server": "docker-compose -f docker/docker-dev.yml up",
     "test-server": "docker-compose -f docker/docker-test.yml up --abort-on-container-exit",
+    "test-ci": "docker-compose -f docker/docker-test-ci.yml up --abort-on-container-exit",
     "test": "mocha"
   },
   "repository": {
