@@ -1,7 +1,34 @@
 const db = require('../src/modules/db');
 const q  = db.db;
 
-set_db = async function() {
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function connect_retry(db, n, t) {
+  // Await for connection -- postgres takes time to start-up in docker-compose
+  // n attempts, one every t seconds.
+  var err = 0;
+  while (err < n) {
+    try {
+      await q.proc('version');
+      return true;
+    } catch (err) {
+      err += 1;
+      console.log(`DB connection error (n=${err})`);
+      await sleep(t*1000);
+    }
+  }
+  return false;
+}
+
+async function set_db() {
+  // Await DB connection.
+  var connected = await connect_retry(q, 15, 2);
+  if (!connected) {
+    process.exit(1);
+  }
+  // Initialize database
   await db.wipeDBTables();
 
   await q.none('INSERT INTO $1~(password) VALUES($2)', [db.tables.password_blacklist, 'password']);
