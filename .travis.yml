@@ -11,7 +11,7 @@ install:
   - npm install --no-save nyc coveralls
 
 script:
-  - npm test-ci
+  - npm run test-ci
 
 after_script:
   - nyc report --reporter=text-lcov | coveralls
