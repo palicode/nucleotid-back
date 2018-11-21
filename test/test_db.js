@@ -13,9 +13,8 @@ async function connect_retry(db, n, t) {
     try {
       await q.proc('version');
       return true;
-    } catch (err) {
+    } catch (e) {
       err += 1;
-      console.log(`DB connection error (n=${err})`);
       await sleep(t*1000);
     }
   }
