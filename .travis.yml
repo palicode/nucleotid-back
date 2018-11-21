@@ -5,6 +5,11 @@ services:
 
 node_js:
   - "node"
+
+branches:
+  only:
+    - master
+    - develop
   
 install:
   - npm install
