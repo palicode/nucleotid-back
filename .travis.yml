@@ -1,0 +1,22 @@
+language: node_js
+
+services:
+  - docker
+
+node_js:
+  - "node"
+
+branches:
+  only:
+    - master
+    - develop
+  
+install:
+  - npm install
+  - npm install --no-save nyc coveralls
+
+script:
+  - npm run test-ci
+
+after_script:
+  - ./node_modules/.bin/nyc report --reporter=text-lcov | ./node_modules/.bin/coveralls

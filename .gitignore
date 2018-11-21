@@ -1,4 +1,4 @@
-env
+env/production
 crt
 db
 logs

@@ -8,9 +8,6 @@ var cors        = require('./modules/cors');
 var mailer      = require('./modules/mailer');
 var config      = require('../config.js')[process.env.NODE_ENV || "dev"];
 
-// Routers
-var indexRouter = require('./routes/index');
-
 // Configure CORS.
 var cors_options = {
   origins: config.cors_origins,
