@@ -41,73 +41,50 @@ module.exports.createWebUser = async (req, res, next) => {
   hash.update(user.password);
   const hashpass = hash.digest('hex');
 
-  // addUserProfile
-  // Inserts user_profile info to database.
+  var id = undefined, uuid_token = undefined;
+
+  // insertDB
+  // Inserts user_profile info to database and creates email token.
   try {
-    var userid = await db.one(
-      "INSERT INTO $1~(given_name,\
-               family_name,\
-               email,\
-               password,\
-               birthdate,\
-               web_active,\
-               google_active,\
-               created)\
-       VALUES ($2,$3,$4,$5,$6,$7,$8,$9)\
-       RETURNING id",
-      [psql.tables.user,
-       user.given_name,
-       user.family_name,
-       user.email,
-       hashpass,
-       user.birthdate || null,
-       false,
-       false,
-       (new Date()).toISOString()]
-    );
+    await db.tx('create-user', async t => {
+      id = await t.one("INSERT INTO $1~(given_name,family_name,email,password,birthdate,web_active,google_active)\
+                        VALUES ($2,$3,$4,$5,$6,$7,$8)\
+                        RETURNING id",
+		       [psql.tables.user,
+			user.given_name,
+			user.family_name,
+			user.email,
+			hashpass,
+			user.birthdate || null,
+			false,
+			false
+		       ],
+		       x => +x.id
+		      );
+      uuid_token = await t.one("INSERT INTO $1~(user_id, validated)\
+                                VALUES ($2,$3)\
+                                RETURNING token",
+			       [psql.tables.email_token,
+				id,
+				false
+			       ],
+			       x => x.token
+			      );
+    });
   } catch (err) {
-    log.error('createWebUser(addUserProfile) 500 - database error: ' + err);
+    log.error('createWebUser(insertDB) 500 - database error: ' + err);
     return res.status(500).end();
   }
-
-  log.info(`createWebUser(addUserProfile) user_profile created: ${user.email}`);
-
+  
   // createEmailToken
-  // Creates e-mail confirmation token, stores in db.
-  // Token is BASE64(UUIDv4)
-  var etoken = Buffer.from(uuid()).toString('base64');
-  try {
-    await db.query("INSERT INTO $1~(token, user_id, validated, created)\
-                    VALUES ($2,$3,$4,$5)",
-		   [psql.tables.email_token,
-		    etoken,
-		    userid.id,
-		    false,
-		    (new Date()).toISOString()]
-		  );
-  } catch (err) {
-    log.error(`createWebUser(createEmailToken) database error (delete user_profile):` + err);
-    try {
-      // deleteUserTokenError
-      // If we had issues generating the token, delete the user.
-      await db.query("DELETE FROM $1~ WHERE id=$2",
-		     [psql.tables.user,
-		      userid.id]
-		    );
-    } catch (err) {
-      log.error('createWebUser(deleteUserTokenError) 500 - database error' + err);
-      return res.status(500).end();
-    }
-    log.error('createWebUser(deleteUserTokenError) 500 - user_profile deleted');
-    return res.status(500).end();
-  }
-
-  log.info(`createWebUser(createEmailToken) email_token created (${user.email}): ${etoken}`);
+  // Encode UUIDv4 token base 64.
+  var etoken = Buffer.from("" + uuid_token).toString('base64');
+  log.info(`createWebUser(createEmailToken) user_profile created: {id: ${id}, email: ${user.email}, token: ${etoken}}`);
 
   // sendWelcomeMail
   // Send an e-mail containing a link to activate the user account.
   if (process.env.NODE_ENV === 'production') {
-    // Sends welcome e-mail with confirmation link. (Encode token base64)
+    // Sends welcome e-mail with confirmation link.
     mailer.sendWelcomeMail(user, config.backend_url + '/user/validate/' + etoken);
   }
   
@@ -126,79 +103,59 @@ module.exports.validateEmail = async (req, res, next) => {
 
   // tokenFormat
   // Validate token format (UUIDv4).
-  if (!validator.isUUID(Buffer.from(etoken,'base64').toString('ascii'),4)) {
+  var uuid_token = Buffer.from(etoken,'base64').toString('ascii');
+  if (!validator.isUUID(uuid_token,4)) {
     log.info(`validateEmail(tokenFormat) 400 - invalid token format`);
     return res.status(400).json({"error": "invalid token format"});
   }
-
-  // checkTokenDB
-  // Get token from database.
+  
+  // dbTransaction
+  // Expire token from database, set web_user=true, create personal team.
+  var ids = undefined, team = undefined;
   try {
-    var dbtoken = await db.oneOrNone("SELECT user_id, validated FROM $1~ WHERE token=$2",
-				   [psql.tables.email_token,
-				    etoken]);
-  } catch (err) {
-    log.error(`validateEmail(checkTokenDB) 500 - database error: ${err}`);
-    return res.status(500).end();
-  }
+    await db.tx('activate-user', async t => {
+      // activateUser
+      // Expire token and activate web user profile.
+      ids = await t.oneOrNone("WITH reg AS (UPDATE $1~ SET validated=TRUE, modified=NOW() \
+                                            WHERE token=$2 AND validated=FALSE \
+                                            RETURNING user_id) \
+                               UPDATE $3~ SET web_active=TRUE \
+                               WHERE id in (SELECT user_id FROM reg) \
+                               RETURNING id",
+			      [psql.tables.email_token,
+			       uuid_token,
+			       psql.tables.user]);
 
-  if (!dbtoken) {
-    log.info(`validateEmail(checkTokenDB) 400 - token does not exist`);
-    return res.status(404).end();
+      // createPersonalTeam
+      // Create personal team.
+      if (ids) {
+	team = await t.one("INSERT INTO $1~(team_name, ownerId, personal)\
+                            VALUES($2,$3,$4)\
+                            RETURNING id",
+			   [psql.tables.team,
+			    "My Projects",
+			    ids.user_id,
+			    true]
+			  );
+      }
+    });
+  } catch (err) {
+    log.error(`validateEmail(dbTransaction) 500 - database error: ${err}`);
+    return res.status(500).end();
   }
 
   // Return error if token has expired.
-  if (dbtoken.validated) {
-    log.info(`validateEmail(checkTokenDB) 400 - token already used`);
-    return res.status(400).json({"error": "token already used"});
+  if (!ids) {
+    log.info(`validateEmail(activateUser) 400 - invalid token`);
+    return res.status(400).json({"error": "invalid token"});
   }
 
-  // activateUser
-  // Set web_active true in user_profile.
-  try {
-    await db.query("UPDATE $1~ SET web_active=TRUE WHERE id=$2",
-		   [psql.tables.user,
-		    dbtoken.user_id]);
-    
-  } catch (err) {
-    log.error(`validateEmail(activateUser) 500 - database error: ${err}`);
-    return res.status(500).end();
+  if (!team) {
+    log.info(`validateEmail(createPersonalTeam) 500 - server error`);
+    return res.status(500).json({"error": "error creating personal team"});
   }
-
-  log.info(`validateEmail(activateUser) userid(${dbtoken.user_id}) activated`);
-
-  // expireToken
-  // Set token as validated so that it cannot be used twice.
-  try {
-    await db.query("UPDATE $1~ SET validated=$2, modified=$3 WHERE token=$4",
-		   [psql.tables.email_token,
-		    true,
-		    (new Date()).toISOString(),
-		    etoken]
-		  );
-  } catch (err) {
-    log.error(`validateEmail(expireToken) 500 - database error: ${err}`);
-    return res.status(500).end();
-  }
-
-  log.info(`validateEmail(expireToken) validated: ${etoken}`);
   
-  // createPersonalTeam
-  // Create personal team "My Projects" for the activated user.
-  try {
-    var team = await db.one("INSERT INTO $1~(team_name, ownerId, personal, created)\
-                             VALUES($2,$3,$4,$5) RETURNING id",
-			    [psql.tables.team,
-			     "My Projects",
-			     dbtoken.user_id,
-			     true,
-			     (new Date()).toISOString()]
-			   );
-  } catch (err) {
-    log.error(`validateEmail(createPersonalTeam) 500 - database error: ${err}`);
-    return res.status(500).end();
-  };
-
+  log.info(`validateEmail(activateUser) userid(${ids.user_id}) activated with etoken: ${etoken}`);
   log.info(`validateEmail(createPersonalTeam) team(${team.id}) created`);
 
   // send status 200
