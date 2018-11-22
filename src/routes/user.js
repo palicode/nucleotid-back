@@ -16,7 +16,8 @@ router.post('/', userController.validateNewUser, userController.createWebUser);
 router.post('/validate/:eToken', userController.validateEmail);
 
 // READ - GET Routes
-router.get('/:userId([0-9]+)', userController.getUser);
+router.get('/', userController.getUserProfile);
+router.get('/:userId([0-9]+)', userController.getUserProfile);
 router.get('/:userId([0-9]+)/teams', userController.getUserTeams);
 router.get('/:userId([0-9]+)/projects', userController.getUserProjects);
 router.get('/:userId([0-9]+)/projects/shared', userController.getUserSharedProjects);

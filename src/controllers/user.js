@@ -176,11 +176,39 @@ module.exports.validateEmail = async (req, res, next) => {
 
 // GetUser
 // Returns user information.
-module.exports.getUser = async (req, res, next) => {
-  // Check credentials.
-  // If not logged in, return public info.
-  // Otherwise return full profile (exclude passwords and so).
-  res.send(404);
+module.exports.getUserProfile = async (req, res, next) => {
+  // defineTargetUser
+  // Target user is self when no user id is provided.
+  var uid = req.params.userId;
+  if (!uid) {
+    if (req.auth.valid) {
+      uid = req.auth.userid;
+    } else {
+      logger.info('getUserProfile(defineTargetUser) 401 - not logged in and no uid provided');
+      return res.status(401).end();
+    }
+  }
+
+  // selectInfo
+  // Select public or private profile
+  if (uid === req.auth.userid) {
+    info = '(given_name, family_name, email, birthdate, photo, web_active, google_active, created)';
+  } else {
+    info = '(given_name, family_name, photo)';
+  }
+
+  // getDBInfo
+  // Query user info in db.
+  try {
+    var user = await db.one("SELECT $1 FROM $2~ WHERE id=$3", [psql.tables.user, uid]);
+  } catch (err) {
+    log.error(`getUserProfile(getDBInfo) 500 - database error: ${err}`);
+    return res.status(500).end();
+  }
+
+  log.info('getUserProfile() 200');
+
+  return res.status(200).json(user);
 };
 
 
