@@ -74,14 +74,14 @@ const create_tables = [
        google_active	   boolean 	NOT NULL,\
        google_id	   varchar(100),\
        google_accesstoken  varchar(100),\
-       created 		   timestamptz 	NOT NULL,\
+       created 		   timestamptz 	NOT NULL DEFAULT NOW(),\
        UNIQUE(email)\
    );",
     "CREATE TABLE IF NOT EXISTS email_token (\
-       token               varchar(256) PRIMARY KEY,\
+       token               uuid         PRIMARY KEY DEFAULT uuid_generate_v4(),\
        user_id             bigint       NOT NULL REFERENCES user_profile(id) ON DELETE CASCADE,\
        validated           boolean      NOT NULL,\
-       created             timestamptz  NOT NULL,\
+       created             timestamptz  NOT NULL DEFAULT NOW(),\
        modified            timestamptz\
   );",
   "CREATE TABLE IF NOT EXISTS team_profile (\
