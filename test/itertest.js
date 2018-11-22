@@ -8,7 +8,7 @@ module.exports = (test, test_cases, path, method='post') => {
     // Iterate over test cases.
     it(test_case.test, (done) => {
       // Create request.
-      var out = test[method](path);
+      var out = test[method](path+(test_case.pathparams || ""));
       
       // Send data if available.
       if (test_case.data) {
