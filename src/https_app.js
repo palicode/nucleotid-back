@@ -50,7 +50,7 @@ app.use('/auth', require('./routes/auth'));
 // 404 Middleware
 app.use((req, res, next) => {
   log.info(`UnmatchedRoute 404 - ${req.method} ${req.originalUrl}`);
-  return req.status(404).end();
+  return res.status(404).end();
 });
 
 module.exports = app;

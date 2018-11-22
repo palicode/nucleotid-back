@@ -30,8 +30,11 @@ async function set_db() {
   // Initialize database
   await db.wipeDBTables();
 
+  // blacklisted passwords
   await q.none('INSERT INTO $1~(password) VALUES($2)', [db.tables.password_blacklist, 'password']);
   await q.none('INSERT INTO $1~(password) VALUES($2)', [db.tables.password_blacklist, '123456']);
+
+  // user profiles
   var user = await q.one('INSERT INTO $1~(id,given_name,family_name,email,password,web_active,google_active,created) VALUES($2,$3,$4,$5,$6,$7,$8,$9) RETURNING id',
 			 [db.tables.user,
 			  0,
@@ -43,6 +46,11 @@ async function set_db() {
 			  false,
 			  (new Date()).toISOString()
 			 ]);
+
+  // email validation token (UUID:3f4ec110-7eaf-4e28-a9af-3959a96ca100, etoken: M2Y0ZWMxMTAtN2VhZi00ZTI4LWE5YWYtMzk1OWE5NmNhMTAw)
+  await q.none('INSERT INTO $1~(token, user_id, validated) VALUES($2,$3,$4)', [db.tables.email_token, '3f4ec110-7eaf-4e28-a9af-3959a96ca100', user.id, false]);
+
+  // active sessions
   await q.none('INSERT INTO $1~(tokenid,userid) VALUES($2,$3)', [db.tables.auth_session, 'fccb3346-7346-4501-a331-2a491dbc8d58', user.id]);
   await q.none('INSERT INTO $1~(tokenid,userid) VALUES($2,$3)', [db.tables.auth_session, 'accb3346-7346-4501-a331-2a491dbc8d58', user.id]);
   await q.none('INSERT INTO $1~(tokenid,userid) VALUES($2,$3)', [db.tables.auth_session, 'bccb3346-7346-4501-a331-2a491dbc8d58', user.id]);

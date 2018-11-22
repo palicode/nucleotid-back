@@ -61,6 +61,7 @@ module.exports.createWebUser = async (req, res, next) => {
 		       ],
 		       x => +x.id
 		      );
+
       uuid_token = await t.one("INSERT INTO $1~(user_id, validated)\
                                 VALUES ($2,$3)\
                                 RETURNING token",
@@ -98,9 +99,15 @@ module.exports.createWebUser = async (req, res, next) => {
 // Validates user email using eToken, activates account and creates Personal group.
 module.exports.validateEmail = async (req, res, next) => {
   var etoken = req.params.eToken;
-  
   log.info(`validateEmail(${req.method}) etoken: ${etoken}`);
 
+  // checkTokenParam
+  // Checks if token has been passed as parameter.
+  if (!etoken) {
+    log.info(`validateEmail(checkTokenParam) 400 - eToken required`);
+    return res.status(400).json({"error": "eToken required"});
+  }
+  
   // tokenFormat
   // Validate token format (UUIDv4).
   var uuid_token = Buffer.from(etoken,'base64').toString('ascii');
@@ -129,12 +136,12 @@ module.exports.validateEmail = async (req, res, next) => {
       // createPersonalTeam
       // Create personal team.
       if (ids) {
-	team = await t.one("INSERT INTO $1~(team_name, ownerId, personal)\
+	team = await t.one("INSERT INTO $1~(team_name, owner_id, personal)\
                             VALUES($2,$3,$4)\
                             RETURNING id",
 			   [psql.tables.team,
 			    "My Projects",
-			    ids.user_id,
+			    ids.id,
 			    true]
 			  );
       }

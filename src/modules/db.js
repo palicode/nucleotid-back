@@ -88,11 +88,11 @@ const create_tables = [
   "CREATE TABLE IF NOT EXISTS team_profile (\
        id    	    bigserial    PRIMARY KEY,\
        team_name    varchar(100) NOT NULL,\
-       ownerId	    bigint 	 NOT NULL REFERENCES user_profile(id) ON DELETE SET NULL,\
+       owner_id	    bigint 	 NOT NULL REFERENCES user_profile(id) ON DELETE SET NULL,\
        personal     boolean      NOT NULL,\
        created	    timestamptz  NOT NULL DEFAULT NOW()\
    );",
-  "CREATE UNIQUE INDEX IF NOT EXISTS personal_team_index ON team_profile (ownerId, personal) WHERE personal = TRUE;",
+  "CREATE UNIQUE INDEX IF NOT EXISTS personal_team_index ON team_profile (owner_id, personal) WHERE personal = TRUE;",
   "CREATE TABLE IF NOT EXISTS team_permissions (\
        userId	    bigint       NOT NULL REFERENCES user_profile(id) ON DELETE CASCADE,\
        teamId	    bigint 	 NOT NULL REFERENCES team_profile(id) ON DELETE CASCADE,\

@@ -493,12 +493,34 @@ tests_new_user = [
       birthdate: '1981-09-20'
     }
   }
-
-  
 ];
+
+
+tests_validate_email = [
+  {
+    test: 'missing eToken',
+    status: 404
+  },
+  {
+    test: 'eToken format',
+    pathparams: 'aud8adaf8af8y4411313nnfaf',
+    status: 400,
+    error: 'token format'
+  },
+  {
+    test: 'success',
+    pathparams: 'M2Y0ZWMxMTAtN2VhZi00ZTI4LWE5YWYtMzk1OWE5NmNhMTAw',
+    status: 200,
+  },
+];
+
 
 describe('API /user', () => {
   describe ('POST /user', () => {
     itertest(test, tests_new_user, '/user/', 'post');
   });
+  describe ('POST /validate', () => {
+    itertest(test, tests_validate_email, '/user/validate/', 'post');
+  });
+  
 });
