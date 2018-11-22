@@ -172,7 +172,7 @@ var tests_refresh = [
     status: 200,
     data: {
       // Token: alg: HS256, typ: JWT, uid: 0, tokenid: 00000000-0000-1000-8000-000000000000, sign-key: AuthSignatureSecret
-      refresh_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbmlkIjoiMDAwMDAwMDAtMDAwMC0xMDAwLTgwMDAtMDAwMDAwMDAwMDAwIiwidWlkIjowfQ.or_BQ2ceUNxA307v9rg3CT5HYLnFxD6b4hIzRThYFAE'
+      refresh_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOjAsInRva2VuaWQiOiJmY2NiMzM0Ni03MzQ2LTQ1MDEtYTMzMS0yYTQ5MWRiYzhkNTgifQ.CU8uCJwXMA3to3txxfHMfTZ7t4FLpZjxtIxSWKddVUM'
     }
   }
 
@@ -198,29 +198,29 @@ var tests_logout = [
   },
     {
     test: 'authentication token expired',
-    // Token: alg: HS256, typ: JWT, uid: 21313, tokenid: 00000000, max_valid: 978307200000 (2001-01-01), min_valid: 946684800000 (2000-01-01), sign-key: AuthSignatureSecret
-    headers: [['Authentication', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbmlkIjoiMDAwMDAwMDAiLCJ1aWQiOjAsIm1pbl92YWxpZCI6OTQ2Njg0ODAwMDAwLCJtYXhfdmFsaWQiOjk3ODMwNzIwMDAwMH0.ZcEoQsDcfNMLX03Vyvhd3cq7eM7suREgIGzutGkmUp4']],
+    // Token: alg: HS256, typ: JWT, uid: 21313, tokenid: fccb3346, max_valid: 978307200000 (2001-01-01), min_valid: 946684800000 (2000-01-01), sign-key: AuthSignatureSecret
+    headers: [['Authentication', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOjIxMzEzLCJ0b2tlbmlkIjoiZmNjYjMzNDYiLCJtYXhfdmFsaWQiOjk3ODMwNzIwMDAwMCwibWluX3ZhbGlkIjo5NDY2ODQ4MDAwMDB9.kSNZ2a9Q6izl1YyNYt63Gx95af3uBTxVzvD_a2O9MjY']],
     status: 400,
     error: 'expired'
   },
   {
     test: 'golden token: worng uid',
-    // Token: alg: HS256, typ: JWT, uid: 21313, tokenid: 00000000, max_valid: 4102358400000 (2099-12-31), min_valid: 946684800000 (2000-01-01), sign-key: AuthSignatureSecret
-    headers: [['Authentication', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbmlkIjoiMDAwMDAwMDAiLCJ1aWQiOjIxMzEzLCJtaW5fdmFsaWQiOjk0NjY4NDgwMDAwMCwibWF4X3ZhbGlkIjo0MTAyMzU4NDAwMDAwfQ.phLYSrM5D2ryuzQrYq7UcqZuNYdFz2moI4kkFDxUXds']],
+    // Token: alg: HS256, typ: JWT, uid: 21313, tokenid: fccb3346, max_valid: 4102358400000 (2099-12-31), min_valid: 946684800000 (2000-01-01), sign-key: AuthSignatureSecret
+    headers: [['Authentication', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOjIxMzEzLCJ0b2tlbmlkIjoiZmNjYjMzNDYiLCJtYXhfdmFsaWQiOjQxMDIzNTg0MDAwMDAsIm1pbl92YWxpZCI6OTQ2Njg0ODAwMDAwfQ.R_5qqC7BHURDY5cMhtXANdl2BckrLco-2VKwyhrwaoI']],
     status: 401,
     error: 'session does not exist'
   },
   {
     test: 'golden token: worng tokenid',
-    // Token: alg: HS256, typ: JWT, uid: 0, tokenid: 0000000f, max_valid: 4102358400000 (2099-12-31), min_valid: 946684800000 (2000-01-01), sign-key: AuthSignatureSecret
-    headers: [['Authentication', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbmlkIjoiMDAwMDAwMGYiLCJ1aWQiOjAsIm1pbl92YWxpZCI6OTQ2Njg0ODAwMDAwLCJtYXhfdmFsaWQiOjQxMDIzNTg0MDAwMDB9.DCO9VWpcEjBNRtjd1fs-RJpnEx_WOxEiXtDTzpHNuUA']],
+    // Token: alg: HS256, typ: JWT, uid: 0, tokenid: dccb3346, max_valid: 4102358400000 (2099-12-31), min_valid: 946684800000 (2000-01-01), sign-key: AuthSignatureSecret
+    headers: [['Authentication', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOjIxMzEzLCJ0b2tlbmlkIjoiZGNjYjMzNDYiLCJtYXhfdmFsaWQiOjQxMDIzNTg0MDAwMDAsIm1pbl92YWxpZCI6OTQ2Njg0ODAwMDAwfQ.-jMwv7sKWuPxyrJsr0QuX0sJusRK9ihuDCQ_YHc8wj0']],
     status: 401,
     error: 'session does not exist'
   },
   {
     test: 'logout success: session 00000000',
-    // Token: alg: HS256, typ: JWT, uid: 0, tokenid: 00000000, max_valid: 4102358400000 (2099-12-31), min_valid: 946684800000 (2000-01-01), sign-key: AuthSignatureSecret
-    headers: [['Authentication', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbmlkIjoiMDAwMDAwMDAiLCJ1aWQiOjAsIm1pbl92YWxpZCI6OTQ2Njg0ODAwMDAwLCJtYXhfdmFsaWQiOjQxMDIzNTg0MDAwMDB9.LiaJtB6CrWJV3lD_3ng_VXLAyRfiH1qWBw9igvGrO10']],
+    // Token: alg: HS256, typ: JWT, uid: 0, tokenid: fccb3346, max_valid: 4102358400000 (2099-12-31), min_valid: 946684800000 (2000-01-01), sign-key: AuthSignatureSecret
+    headers: [['Authentication', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOjAsInRva2VuaWQiOiJmY2NiMzM0NiIsIm1heF92YWxpZCI6NDEwMjM1ODQwMDAwMCwibWluX3ZhbGlkIjo5NDY2ODQ4MDAwMDB9.MYBsW7Y9oHyFX0T2dLoJRDrp_gP1m_pmgvItTSYC1zg']],
     status: 200
   }
 ];
@@ -247,35 +247,35 @@ var tests_terminate = [
     {
     test: 'authentication token expired',
     // Token: alg: HS256, typ: JWT, uid: 21313, tokenid: 00000000, max_valid: 978307200000 (2001-01-01), min_valid: 946684800000 (2000-01-01), sign-key: AuthSignatureSecret
-    headers: [['Authentication', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbmlkIjoiMDAwMDAwMDAiLCJ1aWQiOjAsIm1pbl92YWxpZCI6OTQ2Njg0ODAwMDAwLCJtYXhfdmFsaWQiOjk3ODMwNzIwMDAwMH0.ZcEoQsDcfNMLX03Vyvhd3cq7eM7suREgIGzutGkmUp4']],
+    headers: [['Authentication', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOjIxMzEzLCJ0b2tlbmlkIjoiZmNjYjMzNDYiLCJtYXhfdmFsaWQiOjk3ODMwNzIwMDAwMCwibWluX3ZhbGlkIjo5NDY2ODQ4MDAwMDB9.kSNZ2a9Q6izl1YyNYt63Gx95af3uBTxVzvD_a2O9MjY']],
     status: 400,
     error: 'expired'
   },
   {
     test: 'golden token: worng uid',
     // Token: alg: HS256, typ: JWT, uid: 21313, tokenid: 00000000, max_valid: 4102358400000 (2099-12-31), min_valid: 946684800000 (2000-01-01), sign-key: AuthSignatureSecret
-    headers: [['Authentication', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbmlkIjoiMDAwMDAwMDAiLCJ1aWQiOjIxMzEzLCJtaW5fdmFsaWQiOjk0NjY4NDgwMDAwMCwibWF4X3ZhbGlkIjo0MTAyMzU4NDAwMDAwfQ.phLYSrM5D2ryuzQrYq7UcqZuNYdFz2moI4kkFDxUXds']],
+    headers: [['Authentication', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOjIxMzEzLCJ0b2tlbmlkIjoiZmNjYjMzNDYiLCJtYXhfdmFsaWQiOjQxMDIzNTg0MDAwMDAsIm1pbl92YWxpZCI6OTQ2Njg0ODAwMDAwfQ.R_5qqC7BHURDY5cMhtXANdl2BckrLco-2VKwyhrwaoI']],
     status: 401,
     error: 'session does not exist'
   },
   {
     test: 'golden token: worng tokenid',
     // Token: alg: HS256, typ: JWT, uid: 0, tokenid: 0000000f, max_valid: 4102358400000 (2099-12-31), min_valid: 946684800000 (2000-01-01), sign-key: AuthSignatureSecret
-    headers: [['Authentication', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbmlkIjoiMDAwMDAwMGYiLCJ1aWQiOjAsIm1pbl92YWxpZCI6OTQ2Njg0ODAwMDAwLCJtYXhfdmFsaWQiOjQxMDIzNTg0MDAwMDB9.DCO9VWpcEjBNRtjd1fs-RJpnEx_WOxEiXtDTzpHNuUA']],
+    headers: [['Authentication', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOjIxMzEzLCJ0b2tlbmlkIjoiZGNjYjMzNDYiLCJtYXhfdmFsaWQiOjQxMDIzNTg0MDAwMDAsIm1pbl92YWxpZCI6OTQ2Njg0ODAwMDAwfQ.-jMwv7sKWuPxyrJsr0QuX0sJusRK9ihuDCQ_YHc8wj0']],
     status: 401,
     error: 'session does not exist'
   },
   {
     test: 'golden token: session 00000000 does not exist',
     // Token: alg: HS256, typ: JWT, uid: 0, tokenid: 00000000, max_valid: 4102358400000 (2099-12-31), min_valid: 946684800000 (2000-01-01), sign-key: AuthSignatureSecret
-    headers: [['Authentication', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbmlkIjoiMDAwMDAwMDAiLCJ1aWQiOjAsIm1pbl92YWxpZCI6OTQ2Njg0ODAwMDAwLCJtYXhfdmFsaWQiOjQxMDIzNTg0MDAwMDB9.LiaJtB6CrWJV3lD_3ng_VXLAyRfiH1qWBw9igvGrO10']],
+    headers: [['Authentication', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOjAsInRva2VuaWQiOiJmY2NiMzM0NiIsIm1heF92YWxpZCI6NDEwMjM1ODQwMDAwMCwibWluX3ZhbGlkIjo5NDY2ODQ4MDAwMDB9.MYBsW7Y9oHyFX0T2dLoJRDrp_gP1m_pmgvItTSYC1zg']],
     status: 401,
     error: 'session does not exist'
   },
   {
     test: 'terminate success: session 10000000',
-    // Token: alg: HS256, typ: JWT, uid: 0, tokenid: 00000000, max_valid: 4102358400000 (2099-12-31), min_valid: 946684800000 (2000-01-01), sign-key: AuthSignatureSecret
-    headers: [['Authentication', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbmlkIjoiMTAwMDAwMDAiLCJ1aWQiOjAsIm1pbl92YWxpZCI6OTQ2Njg0ODAwMDAwLCJtYXhfdmFsaWQiOjQxMDIzNTg0MDAwMDB9.e92J0wLjtJplS1tnD7WwUggSx_3IBAbkClAiaYYlTVw']],
+    // Token: alg: HS256, typ: JWT, uid: 0, tokenid: bccb3346, max_valid: 4102358400000 (2099-12-31), min_valid: 946684800000 (2000-01-01), sign-key: AuthSignatureSecret
+    headers: [['Authentication', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOjAsInRva2VuaWQiOiJiY2NiMzM0NiIsIm1heF92YWxpZCI6NDEwMjM1ODQwMDAwMCwibWluX3ZhbGlkIjo5NDY2ODQ4MDAwMDB9.bkXiInn0O4QXeBWHJkwOR7dHO0v5X8vl4ImM7vEeMVE']],
     status: 200
   }
 ];

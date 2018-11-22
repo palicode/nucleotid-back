@@ -43,9 +43,9 @@ async function set_db() {
 			  false,
 			  (new Date()).toISOString()
 			 ]);
-  await q.none('INSERT INTO $1~(tokenid,userid) VALUES($2,$3)', [db.tables.auth_session, '00000000-0000-1000-8000-000000000000', user.id]);
-  await q.none('INSERT INTO $1~(tokenid,userid) VALUES($2,$3)', [db.tables.auth_session, '10000000-0000-1000-8000-000000000000', user.id]);
-  await q.none('INSERT INTO $1~(tokenid,userid) VALUES($2,$3)', [db.tables.auth_session, '20000000-0000-1000-8000-000000000000', user.id]);
+  await q.none('INSERT INTO $1~(tokenid,userid) VALUES($2,$3)', [db.tables.auth_session, 'fccb3346-7346-4501-a331-2a491dbc8d58', user.id]);
+  await q.none('INSERT INTO $1~(tokenid,userid) VALUES($2,$3)', [db.tables.auth_session, 'accb3346-7346-4501-a331-2a491dbc8d58', user.id]);
+  await q.none('INSERT INTO $1~(tokenid,userid) VALUES($2,$3)', [db.tables.auth_session, 'bccb3346-7346-4501-a331-2a491dbc8d58', user.id]);
 };
 
 set_db();

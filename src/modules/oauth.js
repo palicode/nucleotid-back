@@ -95,7 +95,7 @@ module.exports.extendSession = async (req, res, next) => {
   }
 
   // Check if tokenid is UUIDv4 format
-  if (!validator.isUUID(token.payload.tokenid, 4)) {
+  if (!validator.isUUID("" + token.payload.tokenid, 4)) {
     let e = {error: "wrong tokenid format"};
     log.info(`extendSession(validateToken) 400 - ${e.error}`);
     return res.status(400).json(e);

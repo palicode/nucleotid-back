@@ -59,6 +59,7 @@ const tables = {
 module.exports.tables = tables;
 
 const create_tables = [
+  "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";",
   "CREATE TABLE IF NOT EXISTS password_blacklist (\
        password            varchar(30)  PRIMARY KEY\
   );",
@@ -89,7 +90,7 @@ const create_tables = [
        team_name    varchar(100) NOT NULL,\
        ownerId	    bigint 	 NOT NULL REFERENCES user_profile(id) ON DELETE SET NULL,\
        personal     boolean      NOT NULL,\
-       created	    timestamptz  NOT NULL\
+       created	    timestamptz  NOT NULL DEFAULT NOW()\
    );",
   "CREATE UNIQUE INDEX IF NOT EXISTS personal_team_index ON team_profile (ownerId, personal) WHERE personal = TRUE;",
   "CREATE TABLE IF NOT EXISTS team_permissions (\
@@ -141,7 +142,6 @@ const create_tables = [
        modified     timestamptz NOT NULL,\
        PRIMARY KEY (notebookId, location)\
    );",
-  "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";",
   "CREATE TABLE IF NOT EXISTS auth_session (\
        tokenid      uuid          PRIMARY KEY DEFAULT uuid_generate_v4(),\
        userid       bigint        NOT NULL REFERENCES user_profile(id) ON DELETE CASCADE,\
