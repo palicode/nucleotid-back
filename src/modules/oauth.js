@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const uuid = require('uuid/v4');
 const log  = require('./logger').logmodule(module);
 const psql = require('./db');
+const validator = require('validator');
 
 var signature_key_access;
 var signature_key_refresh;
@@ -94,7 +95,7 @@ module.exports.extendSession = async (req, res, next) => {
   }
 
   // Check if tokenid is UUIDv4 format
-  if (!(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")).test(token.payload.tokenid)) {
+  if (!validator.isUUID(token.payload.tokenid, 4)) {
     let e = {error: "wrong tokenid format"};
     log.info(`extendSession(validateToken) 400 - ${e.error}`);
     return res.status(400).json(e);
