@@ -101,13 +101,6 @@ module.exports.validateEmail = async (req, res, next) => {
   var etoken = req.params.eToken;
   log.info(`validateEmail(${req.method}) etoken: ${etoken}`);
 
-  // checkTokenParam
-  // Checks if token has been passed as parameter.
-  if (!etoken) {
-    log.info(`validateEmail(checkTokenParam) 400 - eToken required`);
-    return res.status(400).json({"error": "eToken required"});
-  }
-  
   // tokenFormat
   // Validate token format (UUIDv4).
   var uuid_token = Buffer.from(etoken,'base64').toString('ascii');
@@ -177,17 +170,19 @@ module.exports.validateEmail = async (req, res, next) => {
 // GetUser
 // Returns user information.
 module.exports.getUserProfile = async (req, res, next) => {
+  log.info(`getUserProfile(GET) userId: ${req.params.userId}`);
   // defineTargetUser
-  // Target user is self when no user id is provided.
+  // Target user is self when no user id is provided and user is logged.
   var uid = req.params.userId;
   if (!uid) {
     if (req.auth.valid) {
       uid = req.auth.userid;
     } else {
-      logger.info('getUserProfile(defineTargetUser) 401 - not logged in and no uid provided');
-      return res.status(401).end();
+      log.info('getUserProfile(defineTargetUser) 401 - not logged in and no uid provided');
+      return res.status(401).json({error: "unauthenticated"});
     }
   }
+  log.info(`getUserProfile(defineTargetUser) userId: ${uid}`);
 
   // selectInfo
   // Select public or private profile
@@ -196,15 +191,27 @@ module.exports.getUserProfile = async (req, res, next) => {
   } else {
     info = '(given_name, family_name, photo)';
   }
+  log.info(`getUserProfile(selectInfo): ${info}`);
 
   // getDBInfo
   // Query user info in db.
   try {
-    var user = await db.one("SELECT $1 FROM $2~ WHERE id=$3", [psql.tables.user, uid]);
+    var user = await db.oneOrNone(`SELECT ${info} FROM $1~ WHERE id=$2`,
+				  [psql.tables.user, uid]);
   } catch (err) {
     log.error(`getUserProfile(getDBInfo) 500 - database error: ${err}`);
     return res.status(500).end();
   }
+
+  if (!user) {
+    log.info('getUserProfile(getDBInfo) 404 - user not found');
+    return res.status(404).json({error: "user not found"});
+  }
+
+  // parseDBRow
+  // Converts DB row into object.
+  user = psql.rowToObject(info, user.row);
+  log.info(`getUserProfile(parseDBRow) object: ${JSON.stringify(user)}`);
 
   log.info('getUserProfile() 200');
 

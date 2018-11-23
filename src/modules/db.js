@@ -31,11 +31,23 @@ module.exports.pgp = pgp;
 
 module.exports.updateModifiedById = async (table, id) => {
   try {
-    await db.none("UPDATE $1 SET modified = GETDATE() WHERE id=$2",
+    await db.none("UPDATE $1~ SET modified = GETDATE() WHERE id=$2",
 		  [table, id]);
   } catch (err) {
     throw err;
   }
+};
+
+/*
+** HELPER FUNCTIONS
+*/
+
+module.exports.rowToObject = (colnames, row) => {
+  var cols = colnames.match(/[^\(^,^\)^\s]+/g);
+  var vals = row.match(/[^\(^,^\)^\s]+/g);
+  var obj = {};
+  cols.forEach((key, i) => obj[key] = vals[i]);
+  return obj;
 };
 
 /*
@@ -45,15 +57,14 @@ module.exports.updateModifiedById = async (table, id) => {
 const tables = {
   password_blacklist : 'password_blacklist',
   email_token : 'email_token',
-  user : 'user_profile',
-  team : 'team_profile',
-//  team_member : 'team_member',
-  team_permissions : 'team_permissions',
-  project : 'project',
-  project_permissions : 'project_permissions',
-  notebook : 'notebook',
   notebook_step : 'notebook_step',
+  notebook : 'notebook',
+  project_permissions : 'project_permissions',
+  project : 'project',
+  team_permissions : 'team_permissions',
+  team : 'team_profile',
   auth_session : 'auth_session',
+  user : 'user_profile',
 };
 
 module.exports.tables = tables;
@@ -78,6 +89,7 @@ const create_tables = [
        created 		   timestamptz 	NOT NULL DEFAULT NOW(),\
        UNIQUE(email)\
    );",
+  "ALTER SEQUENCE user_profile_id_seq RESTART WITH 1000000;",
     "CREATE TABLE IF NOT EXISTS email_token (\
        token               uuid         PRIMARY KEY DEFAULT uuid_generate_v4(),\
        user_id             bigint       NOT NULL REFERENCES user_profile(id) ON DELETE CASCADE,\
@@ -167,6 +179,15 @@ module.exports.createDBTables = createDBTables;
 
 module.exports.wipeDBTables = async () => {
 
+  // Delete tables.
+  try {
+    for (tn in tables) {
+      await db.none("DROP TABLE IF EXISTS $1~", tables[tn]);
+    }
+  } catch (err) {
+    throw err;
+  }
+
   // Create tables.
   try {
     await createDBTables();
@@ -174,12 +195,4 @@ module.exports.wipeDBTables = async () => {
     throw err;
   }
 
-  // Clear table contents.
-  try {
-    for (tn in tables) {
-      await db.none("DELETE FROM $1~", tables[tn]);
-    }
-  } catch (err) {
-    throw err;
-  }
 };

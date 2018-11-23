@@ -3,7 +3,7 @@ var userController = require('../controllers/user');
 var cors = require('../modules/cors').cors;
 
 // CORS middleware
-router.all('/', cors({methods: ["POST"]}));
+router.all('/', cors({methods: ["GET","POST"]}));
 router.all('/:userId([0-9]+)', cors({methods: ["GET","PATCH","DELETE"]}));
 router.all('/:userId([0-9]+)/teams', cors());
 router.all('/:userId([0-9]+)/projects', cors());

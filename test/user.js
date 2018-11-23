@@ -1,6 +1,7 @@
 const app = require('../src/https_app.js');
 const test = require('supertest')(app);
 const itertest = require('./itertest');
+const assert = require('assert');
 
 // New users test
 tests_new_user = [
@@ -514,13 +515,90 @@ tests_validate_email = [
   },
 ];
 
+tests_getUserProfile = [
+  {
+    test: 'no auth - no userid',
+    status: 401,
+    error: 'unauthenticated',
+  },
+  {
+    test: 'no auth - wrong userid (3491)',
+    pathparams: '3491',
+    status: 404,
+    error: 'user not found',
+  },
+  {
+    test: 'no auth - correct userid (0)',
+    pathparams: 0,
+    status: 200,
+    func: (data) => {
+      user = JSON.parse(data.text);
+      assert(user.given_name === 'Eduard');
+      assert(user.family_name === 'Zorita');
+      assert(user.photo === 'https://i1.rgstatic.net/ii/profile.image/315640353624067-1452265932482_Q512/Eduard_Valera_Zorita.jpg');
+      assert(user.email === undefined);
+      assert(user.password === undefined);
+      assert(user.birthdate === undefined);
+      assert(user.web_active === undefined);
+      assert(user.google_active === undefined);
+      assert(user.created === undefined);
+    }
+  },
+  {
+    test: 'auth - wrong userid (3491)',
+    headers: [['Authentication', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOjAsInRva2VuaWQiOiJmY2NiMzM0NiIsIm1heF92YWxpZCI6NDEwMjM1ODQwMDAwMCwibWluX3ZhbGlkIjo5NDY2ODQ4MDAwMDB9.MYBsW7Y9oHyFX0T2dLoJRDrp_gP1m_pmgvItTSYC1zg']],
+    pathparams: 3491,
+    status: 404,
+    error: 'user not found',
+  },
+  {
+    test: 'auth - no userid (self)',
+    headers: [['Authentication', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOjAsInRva2VuaWQiOiJmY2NiMzM0NiIsIm1heF92YWxpZCI6NDEwMjM1ODQwMDAwMCwibWluX3ZhbGlkIjo5NDY2ODQ4MDAwMDB9.MYBsW7Y9oHyFX0T2dLoJRDrp_gP1m_pmgvItTSYC1zg']],
+    status: 200,
+    func: (data) => {
+      user = JSON.parse(data.text);
+      assert(user.given_name === 'Eduard');
+      assert(user.family_name === 'Zorita');
+      assert(user.photo === 'https://i1.rgstatic.net/ii/profile.image/315640353624067-1452265932482_Q512/Eduard_Valera_Zorita.jpg');
+      assert(user.email === 'eduard.zorita@nucleotid.com');
+      assert(user.password === undefined);
+      assert(user.birthdate ==='1988-01-01');
+      assert(user.web_active === 't');
+      assert(user.google_active === 'f');
+      assert(user.created != undefined);
+      
+    }
+  },
+  {
+    test: 'auth - correct userid (1)',
+    headers: [['Authentication', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOjAsInRva2VuaWQiOiJmY2NiMzM0NiIsIm1heF92YWxpZCI6NDEwMjM1ODQwMDAwMCwibWluX3ZhbGlkIjo5NDY2ODQ4MDAwMDB9.MYBsW7Y9oHyFX0T2dLoJRDrp_gP1m_pmgvItTSYC1zg']],
+    pathparams: 1,
+    status: 200,
+    func: (data) => {
+      user = JSON.parse(data.text);
+      assert(user.given_name === 'Michael');
+      assert(user.family_name === 'Douglas');
+      assert(user.photo);
+      assert(user.email === undefined);
+      assert(user.password === undefined);
+      assert(user.birthdate === undefined);
+      assert(user.web_active === undefined);
+      assert(user.google_active === undefined);
+      assert(user.created === undefined);
+    }
+  },
+  
+];
 
 describe('API /user', () => {
   describe ('POST /user', () => {
     itertest(test, tests_new_user, '/user/', 'post');
   });
-  describe ('POST /validate', () => {
+  describe ('POST /user/validate', () => {
     itertest(test, tests_validate_email, '/user/validate/', 'post');
+  });
+  describe ('GET /user/', () => {
+    itertest(test, tests_getUserProfile, '/user/', 'get');
   });
   
 });
