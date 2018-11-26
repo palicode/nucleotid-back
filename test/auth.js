@@ -37,7 +37,9 @@ var tests_login = [
     status: 400,
     error: 'authentication data',
     data: {
-      password: 'notblacklistedpassw0rd'
+      auth: {
+	password: 'notblacklistedpassw0rd'
+      }
     }
   },
   {
@@ -45,7 +47,18 @@ var tests_login = [
     status: 400,
     error: 'authentication data',
     data: {
-      email: 'mike@mike.com'
+      auth: {
+	email: 'mike@mike.com'
+      }
+    }
+  },
+  {
+    test: 'no auth object',
+    status: 400,
+    error: 'authentication data',
+    data: {
+      email: 'authdummy@email.com',
+      password: 'dummyPassword',
     }
   },
   {
@@ -53,8 +66,10 @@ var tests_login = [
     status: 401,
     error: 'authentication failed',
     data: {
-      email: 'fake@email.com',
-      password: 'passw0rd123',
+      auth: {
+	email: 'fake@email.com',
+	password: 'passw0rd123',
+      }
     }
   },
   {
@@ -62,16 +77,20 @@ var tests_login = [
     status: 401,
     error: 'authentication failed',
     data: {
-      email: 'authdummy@email.com',
-      password: 'passw0rd123',
+      auth: {
+	email: 'authdummy@email.com',
+	password: 'passw0rd123',
+      }
     }
   },
   {
     test: 'successful authdummy@email.com',
     status: 200,
     data: {
-      email: 'authdummy@email.com',
-      password: 'dummyPassword',
+      auth: {
+	email: 'authdummy@email.com',
+	password: 'dummyPassword',
+      }
     },
     parse: (res) => {
       if (!res.body.access_token || !res.body.refresh_token) {

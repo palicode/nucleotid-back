@@ -265,6 +265,7 @@ module.exports.updateUser = async (req, res, next) => {
   // Check credentials.
   // If not match, return 403.
   // Otherwise update received fields in user profile. (Require login (no OAUTH) to update password).
+  // How to handle e-mail updates?
   res.send(404);
 };
 
@@ -291,7 +292,7 @@ module.exports.validateCredentials = async (req, res, next) => {
 
   // checkBodyData
   // Checks the body data.
-  if (!req.body.email || !req.body.password) {
+  if (!req.body.auth || !req.body.auth.email || !req.body.auth.password) {
     let e = {error: "insufficient authentication data"};
     log.info(`validateCredentials(checkBodyData) 400 - ${e.error}`);
     return res.status(400).json(e);
@@ -299,7 +300,7 @@ module.exports.validateCredentials = async (req, res, next) => {
 
   // checkEmailFormat
   // If the email format is wrong, it is guaranteed to fail.
-  if(!validator.isLength(req.body.email, {max: passwd_opts.max_len}) || !validator.isEmail(req.body.email)) {
+  if(!validator.isLength(req.body.auth.email, {max: passwd_opts.max_len}) || !validator.isEmail(req.body.auth.email)) {
     let e = {error: "authentication failed"};
     log.info(`validateCredentials(checkEmailFormat) 401 - ${e.error}`);
     return res.status(401).json(e);
@@ -307,7 +308,7 @@ module.exports.validateCredentials = async (req, res, next) => {
 
   // checkPasswordFormat
   // If the password does not satisfy the requirements it is guaranteed to fail.
-  if (!validator.isLength(req.body.password, {min: passwd_opts.min_len, max: passwd_opts.max_len})) {
+  if (!validator.isLength(req.body.auth.password, {min: passwd_opts.min_len, max: passwd_opts.max_len})) {
     let e = {error: "authentication failed"};
     log.info(`validateCredentials(checkPasswordFormat) 401 - ${e.error}`);
     return res.status(401).json(e);
@@ -318,7 +319,7 @@ module.exports.validateCredentials = async (req, res, next) => {
   try {
     var user = await db.oneOrNone("SELECT id, email, password FROM $1~ WHERE email=$2",
 				  [psql.tables.user,
-				  req.body.email]);
+				  req.body.auth.email]);
   } catch (err) {
     log.error(`validateCredentials(findUser) 500 - database error: ${err}`);
     return res.status(500).end();
@@ -333,7 +334,7 @@ module.exports.validateCredentials = async (req, res, next) => {
   // validatePassword
   // Hashes provided password and compares with user_profile(pasword).
   const hash = crypto.createHash('SHA512');
-  hash.update(req.body.password);
+  hash.update(req.body.auth.password);
   const hashpass = hash.digest('hex');
 
   if (user.password !== hashpass) {
