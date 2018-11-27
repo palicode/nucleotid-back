@@ -281,7 +281,7 @@ module.exports.updateUser = async (req, res, next) => {
   // Checks if authenticated user and target user for update match.
   if (req.params.userId !== credentials.id) {
     log.info('updateUser(checkUserId) 401 - unauthorized: logged user and target user differ');
-    return res.status(401).json({error: "unauthorized"});
+    return res.status(403).json({error: "unauthorized"});
   }
 
   // checkDataKeys
@@ -334,10 +334,29 @@ module.exports.updateUser = async (req, res, next) => {
 // DeleteUser
 // Deletes user profile.
 module.exports.deleteUser = async (req, res, next) => {
-  // Check credentials. (Require login, no OAUTH)
-  // If not match, return 403.
+  // Get credentials.
+  var uid = req.credentials.id;
+
+  // checkUserId
+  // Checks if authenticated user and target user match.
+  if (req.params.userId !== uid) {
+    log.info('deleteUser(checkUserId) 401 - unauthorized: logged user and target user differ');
+    return res.status(403).json({error: "unauthorized"});
+  }
+
+  // deleteDB
+  // Deletes user from DB.
+  try {
+    var del = await db.oneOrNone("DELETE FROM $1~ WHERE id=$2 RETURNING id",
+				 [psql.tables.user,
+				  uid]);
+  } catch (err) {
+    log.error(`deleteUser(deleteDB) 500 - database error: ${err}`);
+    return res.status(500).end();
+  }
+
   // Otherwise delete user profile.
-  res.send(404);
+  return res.status(200).json(del);
 };
 
 /*

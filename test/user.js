@@ -812,7 +812,7 @@ tests_updateUser = [
   {
     test: 'user id mismatch',
     pathparams: 123,
-    status: 401,
+    status: 403,
     error: 'unauthorized',
     data: {
       auth: {
@@ -1007,6 +1007,60 @@ tests_getUpdatedUserProfile = [
 
 ];
 
+tests_deleteUser = [
+  {
+    test: 'no auth data',
+    pathparams: 0,
+    status: 400,
+    error: 'insufficient authentication data',
+    data: {
+      user: {
+	given_name: "Edward"
+      }
+    }
+  },
+  {
+    test: 'invalid authentication',
+    pathparams: 0,
+    status: 401,
+    error: 'authentication failed',
+    data: {
+      auth: {
+	email: "eduard.zorita@nucleotid.com",
+	password: "maxmix123" // new password is "ANewPassword1234"
+      }
+    }
+  },
+  {
+    test: 'invalid target id',
+    pathparams: 2932,
+    status: 403,
+    error: 'unauthorized',
+    data: {
+      auth: {
+	email: "eduard.zorita@nucleotid.com",
+	password: "ANewPassword1234"
+      }
+    }
+  },
+  {
+    test: 'success',
+    pathparams: 0,
+    status: 200,
+    data: {
+      auth: {
+	email: "eduard.zorita@nucleotid.com",
+	password: "ANewPassword1234"
+      }
+    },
+    func: (data) => {
+      var user = JSON.parse(data.text);
+      assert(user.id == 0);
+    }
+  },
+
+];
+
 describe('API /user', () => {
   describe ('POST /user', () => {
     itertest(test, tests_new_user, '/user/', 'post');
@@ -1022,6 +1076,9 @@ describe('API /user', () => {
   });
   describe ('GET /user/ (updated)', () => {
     itertest(test, tests_getUpdatedUserProfile, '/user/', 'get');
+  });
+  describe ('DELETE /user/', () => {
+    itertest(test, tests_deleteUser, '/user/', 'delete');
   });
   
 });

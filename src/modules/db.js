@@ -100,7 +100,7 @@ const create_tables = [
   "CREATE TABLE IF NOT EXISTS team_profile (\
        id    	    bigserial    PRIMARY KEY,\
        team_name    varchar(100) NOT NULL,\
-       owner_id	    bigint 	 NOT NULL REFERENCES user_profile(id) ON DELETE SET NULL,\
+       owner_id	    bigint 	 REFERENCES user_profile(id) ON DELETE SET NULL,\
        personal     boolean      NOT NULL,\
        created	    timestamptz  NOT NULL DEFAULT NOW()\
    );",
