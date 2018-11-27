@@ -3,12 +3,14 @@ const psql   = require('../modules/db');
 const mailer = require('../modules/mailer');
 const crypto = require('crypto');
 const uuid   = require('uuid/v4');
-const config = require('../../config')[process.env.NODE_ENV || 'dev'];
+const config = require('../../config');
 const validator = require('validator');
 const db     = psql.db;
 const pgp    = psql.pgp;
 const log    = require('../modules/logger').logmodule(module);
 
+const sconf = config.server[process.env.NODE_ENV || 'dev'];
+const uconf = config.user;
 
 // Some parameters
 const passwd_opts = {min_len: 6, max_len: 30};
@@ -83,7 +85,7 @@ module.exports.createWebUser = async (req, res, next) => {
   // Send an e-mail containing a link to activate the user account.
   if (process.env.NODE_ENV === 'production') {
     // Sends welcome e-mail with confirmation link.
-    mailer.sendWelcomeMail(user, config.backend_url + '/user/validate/' + etoken);
+    mailer.sendWelcomeMail(user, sconf.server.backend_url + '/user/validate/' + etoken);
   }
   
   log.info('createWebUser() 200');
@@ -377,7 +379,7 @@ module.exports.validateCredentials = async (req, res, next) => {
 
   // checkEmailFormat
   // If the email format is wrong, it is guaranteed to fail.
-  if(!validator.isLength(req.body.auth.email, {max: passwd_opts.max_len}) || !validator.isEmail(req.body.auth.email)) {
+  if(!validator.isLength(req.body.auth.email, {max: uconf.email.max_len}) || !validator.isEmail(req.body.auth.email)) {
     let e = {error: "authentication failed"};
     log.info(`validateCredentials(checkEmailFormat) 401 - ${e.error}`);
     return res.status(401).json(e);
@@ -385,7 +387,7 @@ module.exports.validateCredentials = async (req, res, next) => {
 
   // checkPasswordFormat
   // If the password does not satisfy the requirements it is guaranteed to fail.
-  if (!validator.isLength(req.body.auth.password, {min: passwd_opts.min_len, max: passwd_opts.max_len})) {
+  if (!validator.isLength(req.body.auth.password, {min: uconf.password.min_len, max: uconf.password.max_len})) {
     let e = {error: "authentication failed"};
     log.info(`validateCredentials(checkPasswordFormat) 401 - ${e.error}`);
     return res.status(401).json(e);
@@ -442,7 +444,7 @@ async function parseUserData(user) {
     if (user.email) {
       // validateEmail
       // email: email format
-      if (!validator.isLength(user.email, {max: email_opts.max_len}) || !validator.isEmail(user.email)) {
+      if (!validator.isLength(user.email, {max: uconf.email.max_len}) || !validator.isEmail(user.email)) {
 	throw new Error();
       }
       
@@ -456,8 +458,8 @@ async function parseUserData(user) {
     if (user.given_name) {
       // validateGivenName
       // given_name: unicode max two words, min 2 char and max 25 char
-      if (!validator.isLength(user.given_name, {min:2, max:25}) ||
-	  user.given_name.split(' ').length > 2 ||
+      if (!validator.isLength(user.given_name, {min: uconf.given_name.min_len, max: uconf.given_name.max_len}) ||
+	  user.given_name.split(' ').length > uconf.given_name.max_words ||
 	  !re.unicodeWords(user.given_name)) {
 	throw new Error();
       } 
@@ -474,8 +476,8 @@ async function parseUserData(user) {
       // family_name: unicode multiple words, max 50 char, max 5 words
 
       if (!re.unicodeWords(user.family_name, '-') ||
-	  !validator.isLength(user.family_name, {min:2, max:50}) ||
-	  user.family_name.split(' ').length > 5) {
+	  !validator.isLength(user.family_name, {min: uconf.family_name.min_len, max: uconf.family_name.max_len}) ||
+	  user.family_name.split(' ').length > uconf.family_name.max_words) {
 	throw new Error();
       }
       
@@ -489,7 +491,7 @@ async function parseUserData(user) {
     // validatePassword
     // password: min len 6
     try {
-      if (!validator.isLength(user.password, {min: passwd_opts.min_len, max: passwd_opts.max_len})) {
+      if (!validator.isLength(user.password, {min: uconf.password.min_len, max: uconf.password.max_len})) {
 	throw new Error();
       }
     } catch (err) {
@@ -530,7 +532,7 @@ async function parseUserData(user) {
 
       var now = new Date(Date.now());
       var mindate = new Date(Date.now());
-      mindate.setFullYear(mindate.getFullYear()-150);
+      mindate.setFullYear(mindate.getFullYear()-uconf.birthdate.max_age);
       if (bd >= now || bd < mindate) {
 	return {"error": "birthdate out of bounds"};
       }

@@ -6,7 +6,7 @@ var psql        = require('./modules/db');
 var oauth       = require('./modules/oauth');
 var cors        = require('./modules/cors');
 var mailer      = require('./modules/mailer');
-var config      = require('../config.js')[process.env.NODE_ENV || "dev"];
+var config      = require('../config.js').server[process.env.NODE_ENV || "dev"];
 
 // Configure CORS.
 var cors_options = {

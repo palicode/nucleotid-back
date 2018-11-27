@@ -1,6 +1,6 @@
 const promise = require('bluebird');
 const log     = require('./logger').logmodule(module);
-const config  = require('../../config')[process.env.NODE_ENV || 'dev'];
+const config  = require('../../config').server[process.env.NODE_ENV || 'dev'];
 
 // Initialization options
 const initOptions = {
