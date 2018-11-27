@@ -26,19 +26,6 @@ module.exports.db = db;
 module.exports.pgp = pgp;
 
 /*
-** DATABASE QUERIES
-*/
-
-module.exports.updateModifiedById = async (table, id) => {
-  try {
-    await db.none("UPDATE $1~ SET modified = GETDATE() WHERE id=$2",
-		  [table, id]);
-  } catch (err) {
-    throw err;
-  }
-};
-
-/*
 ** DATABASE TABLES
 */
 

@@ -5,6 +5,14 @@ const assert = require('assert');
 
 // New users test
 tests_new_user = [
+    {
+    test: 'missing user data',
+    status: 400,
+    error: 'user',
+      data: {
+	stuff: "random stuff"
+    }
+  },
   {
     test: 'missing email',
     status: 400,
@@ -742,6 +750,67 @@ tests_updateUser = [
       }
     }
   },
+  {
+    test: 'invalid auth data 3',
+    pathparams: 0,
+    status: 401,
+    error: 'authentication failed',
+    data: {
+      auth: {
+	email: 'eduard.zorita',
+	password: 'maxmix123'
+      },
+      user: {
+	given_name: "Edward"
+      }
+    }
+  },
+  {
+    test: 'invalid auth data 4',
+    pathparams: 0,
+    status: 401,
+    error: 'authentication failed',
+    data: {
+      auth: {
+	email: 'extremelylongemailfhjewirhoirjh23oi4jh24oi2ufnwfsofnsdfnslkfnslkfns@ksdjfklsdjflksdjfdksd.com',
+	password: 'maxmix123'
+      },
+      user: {
+	given_name: "Edward"
+      }
+    }
+  },
+  {
+    test: 'invalid auth data 5',
+    pathparams: 0,
+    status: 401,
+    error: 'authentication failed',
+    data: {
+      auth: {
+	email: 'eduard.zorita@nucleotid.net',
+	password: 'ma'
+      },
+      user: {
+	given_name: "Edward"
+      }
+    }
+  },
+  {
+    test: 'invalid auth data 2',
+    pathparams: 0,
+    status: 401,
+    error: 'authentication failed',
+    data: {
+      auth: {
+	email: 'eduard.zorita@nucleotid.net',
+	password: 'maxmix123veryveryveryverylonggggggggggggggggggggggggggggggggggggggggggggg'
+      },
+      user: {
+	given_name: "Edward"
+      }
+    }
+  },
+
   {
     test: 'no update data',
     pathparams: 0,
