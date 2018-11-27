@@ -10,10 +10,12 @@ tests_new_user = [
     status: 400,
     error: 'email',
     data: {
-      given_name: 'Mike',
-      family_name: 'Springfield',
-      password: 'password',
-      birthdate: '1992-03-21'
+      user: {
+	given_name: 'Mike',
+	family_name: 'Springfield',
+	password: 'password',
+	birthdate: '1992-03-21'
+      }
     }
   },
   {
@@ -21,10 +23,12 @@ tests_new_user = [
     status: 400,
     error: 'given_name',
     data: {
-      email: 'mike@mike.com',
-      family_name: 'Springfield',
-      password: 'password',
-      birthdate: '1992-03-21'
+      user: {
+	email: 'mike@mike.com',
+	family_name: 'Springfield',
+	password: 'password',
+	birthdate: '1992-03-21'
+      }
     }
   },
   {
@@ -32,10 +36,12 @@ tests_new_user = [
     status: 400,
     error: 'family_name',
     data: {
-      email: 'mike@mike.com',
-      given_name: 'Mike',
-      password: 'password',
-      birthdate: '1992-03-21'
+      user: {
+	email: 'mike@mike.com',
+	given_name: 'Mike',
+	password: 'password',
+	birthdate: '1992-03-21'
+      }
     }
   },
   {
@@ -43,10 +49,12 @@ tests_new_user = [
     status: 400,
     error: 'password',
     data: {
-      email: 'mike@mike.com',
-      given_name: 'Mike',
-      family_name: 'Springfield',
-      birthdate: '1992-03-21'
+      user: {
+	email: 'mike@mike.com',
+	given_name: 'Mike',
+	family_name: 'Springfield',
+	birthdate: '1992-03-21'
+      }
     }
   },
   {
@@ -54,11 +62,13 @@ tests_new_user = [
     status: 400,
     error: 'email',
     data: {
-      email: 'mike@mikecom',
-      given_name: 'Mike',
-      family_name: 'Springfield',
-      password: 'password',
-      birthdate: '1992-03-21'
+      user: {
+	email: 'mike@mikecom',
+	given_name: 'Mike',
+	family_name: 'Springfield',
+	password: 'password',
+	birthdate: '1992-03-21'
+      }
     }
   },
   {
@@ -66,11 +76,13 @@ tests_new_user = [
     status: 400,
     error: 'email',
     data: {
-      email: 'mikemikecom',
-      given_name: 'Mike',
-      family_name: 'Springfield',
-      password: 'password',
-      birthdate: '1992-03-21'
+      user: {
+	email: 'mikemikecom',
+	given_name: 'Mike',
+	family_name: 'Springfield',
+	password: 'password',
+	birthdate: '1992-03-21'
+      }
     }
   },
   {
@@ -78,11 +90,13 @@ tests_new_user = [
     status: 400,
     error: 'email',
     data: {
-      email: '@domain.com',
-      given_name: 'Mike',
-      family_name: 'Springfield',
-      password: 'password',
-      birthdate: '1992-03-21'
+      user: {
+	email: '@domain.com',
+	given_name: 'Mike',
+	family_name: 'Springfield',
+	password: 'password',
+	birthdate: '1992-03-21'
+      }
     }
   },
   {
@@ -90,11 +104,13 @@ tests_new_user = [
     status: 400,
     error: 'email',
     data: {
-      email: 'mike@,com',
-      given_name: 'Mike',
-      family_name: 'Springfield',
-      password: 'password',
-      birthdate: '1992-03-21'
+      user: {
+	email: 'mike@,com',
+	given_name: 'Mike',
+	family_name: 'Springfield',
+	password: 'password',
+	birthdate: '1992-03-21'
+      }
     }
   },
   {
@@ -102,11 +118,13 @@ tests_new_user = [
     status: 400,
     error: 'email',
     data: {
-      email: 'mike@domain,com',
-      given_name: 'Mike',
-      family_name: 'Springfield',
-      password: 'password',
-      birthdate: '1992-03-21'
+      user: {
+	email: 'mike@domain,com',
+	given_name: 'Mike',
+	family_name: 'Springfield',
+	password: 'password',
+	birthdate: '1992-03-21'
+      }
     }
   },
   {
@@ -114,11 +132,13 @@ tests_new_user = [
     status: 400,
     error: 'email',
     data: {
-      email: 'mike@domain.',
-      given_name: 'Mike',
-      family_name: 'Springfield',
-      password: 'password',
-      birthdate: '1992-03-21'
+      user: {
+	email: 'mike@domain.',
+	given_name: 'Mike',
+	family_name: 'Springfield',
+	password: 'password',
+	birthdate: '1992-03-21'
+      }
     }
   },
   {
@@ -126,11 +146,13 @@ tests_new_user = [
     status: 400,
     error: 'email',
     data: {
-      email: '@.com',
-      given_name: 'Mike',
-      family_name: 'Springfield',
-      password: 'password',
-      birthdate: '1992-03-21'
+      user: {
+	email: '@.com',
+	given_name: 'Mike',
+	family_name: 'Springfield',
+	password: 'password',
+	birthdate: '1992-03-21'
+      }
     }
   },
   {
@@ -138,11 +160,13 @@ tests_new_user = [
     status: 400,
     error: 'email',
     data: {
-      email: '@',
-      given_name: 'Mike',
-      family_name: 'Springfield',
-      password: 'password',
-      birthdate: '1992-03-21'
+      user: {
+	email: '@',
+	given_name: 'Mike',
+	family_name: 'Springfield',
+	password: 'password',
+	birthdate: '1992-03-21'
+      }
     }
   },
   {
@@ -150,11 +174,13 @@ tests_new_user = [
     status: 400,
     error: 'email',
     data: {
-      email: '',
-      given_name: 'Mike',
-      family_name: 'Springfield',
-      password: 'password',
-      birthdate: '1992-03-21'
+      user: {
+	email: '',
+	given_name: 'Mike',
+	family_name: 'Springfield',
+	password: 'password',
+	birthdate: '1992-03-21'
+      }
     }
   },
   {
@@ -162,11 +188,13 @@ tests_new_user = [
     status: 400,
     error: 'email',
     data: {
-      email: 'mi(k)e@mike.com',
-      given_name: 'Mike',
-      family_name: 'Springfield',
-      password: 'password',
-      birthdate: '1992-03-21'
+      user: {
+	email: 'mi(k)e@mike.com',
+	given_name: 'Mike',
+	family_name: 'Springfield',
+	password: 'password',
+	birthdate: '1992-03-21'
+      }
     }
   },
   {
@@ -174,11 +202,13 @@ tests_new_user = [
     status: 400,
     error: 'email',
     data: {
-      email: '',
-      given_name: 'Mike',
-      family_name: 'Springfield',
-      password: 'password',
-      birthdate: '1992-03-21'
+      user: {
+	email: '',
+	given_name: 'Mike',
+	family_name: 'Springfield',
+	password: 'password',
+	birthdate: '1992-03-21'
+      }
     }
   },
 
@@ -187,11 +217,13 @@ tests_new_user = [
     status: 400,
     error: 'email',
     data: {
-      email: 'jdufkgjfheurythgjfkdlskdjfhgytkejdhncjkfkdj@jksajsdjsdsd.com',
-      given_name: 'Mike',
-      family_name: 'Springfield',
-      password: 'password',
-      birthdate: '1992-03-21'
+      user: {
+	email: 'jdufkgjfheurythgjfkdlskdjfhgytkejdhncjkfkdj@jksajsdjsdsd.com',
+	given_name: 'Mike',
+	family_name: 'Springfield',
+	password: 'password',
+	birthdate: '1992-03-21'
+      }
     }
   },
   {
@@ -199,11 +231,13 @@ tests_new_user = [
     status: 400,
     error: 'given_name',
     data: {
-      email: 'mike@mike.com',
-      given_name: 'Michael van Gogh sin',
-      family_name: 'Springfield',
-      password: 'password',
-      birthdate: '1992-03-21'
+      user: {
+	email: 'mike@mike.com',
+	given_name: 'Michael van Gogh sin',
+	family_name: 'Springfield',
+	password: 'password',
+	birthdate: '1992-03-21'
+      }
     }
   },
 
@@ -212,11 +246,13 @@ tests_new_user = [
     status: 400,
     error: 'given_name',
     data: {
-      email: 'mike@mike.com',
-      given_name: 'M1ke',
-      family_name: 'Springfield',
-      password: 'password',
-      birthdate: '1992-03-21'
+      user: {
+	email: 'mike@mike.com',
+	given_name: 'M1ke',
+	family_name: 'Springfield',
+	password: 'password',
+	birthdate: '1992-03-21'
+      }
     }
   },
     {
@@ -224,11 +260,13 @@ tests_new_user = [
     status: 400,
     error: 'given_name',
     data: {
-      email: 'mike@mike.com',
-      given_name: 'Mike (God)',
-      family_name: 'Springfield',
-      password: 'password',
-      birthdate: '1992-03-21'
+      user: {
+	email: 'mike@mike.com',
+	given_name: 'Mike (God)',
+	family_name: 'Springfield',
+	password: 'password',
+	birthdate: '1992-03-21'
+      }
     }
   },
   {
@@ -236,11 +274,13 @@ tests_new_user = [
     status: 400,
     error: 'given_name',
     data: {
-      email: 'mike@mike.com',
-      given_name: 'Mike*',
-      family_name: 'Springfield',
-      password: 'password',
-      birthdate: '1992-03-21'
+      user: {
+	email: 'mike@mike.com',
+	given_name: 'Mike*',
+	family_name: 'Springfield',
+	password: 'password',
+	birthdate: '1992-03-21'
+      }
     }
   },
   {
@@ -248,11 +288,13 @@ tests_new_user = [
     status: 400,
     error: 'given_name',
     data: {
-      email: 'mike@mike.com',
-      given_name: '',
-      family_name: 'Springfield',
-      password: 'password',
-      birthdate: '1992-03-21'
+      user: {
+	email: 'mike@mike.com',
+	given_name: '',
+	family_name: 'Springfield',
+	password: 'password',
+	birthdate: '1992-03-21'
+      }
     }
   },
     {
@@ -260,11 +302,13 @@ tests_new_user = [
     status: 400,
     error: 'given_name',
     data: {
-      email: 'mike@mike.com',
-      given_name: 'M',
-      family_name: 'Springfield',
-      password: 'password',
-      birthdate: '1992-03-21'
+      user: {
+	email: 'mike@mike.com',
+	given_name: 'M',
+	family_name: 'Springfield',
+	password: 'password',
+	birthdate: '1992-03-21'
+      }
     }
   },
   {
@@ -272,11 +316,13 @@ tests_new_user = [
     status: 400,
     error: 'given_name',
     data: {
-      email: 'mike@mike.com',
-      given_name: 'Michaelangelodasouzabatmanbinsupraman',
-      family_name: 'Springfield',
-      password: 'password',
-      birthdate: '1992-03-21'
+      user: {
+	email: 'mike@mike.com',
+	given_name: 'Michaelangelodasouzabatmanbinsupraman',
+	family_name: 'Springfield',
+	password: 'password',
+	birthdate: '1992-03-21'
+      }
     }
   },
   {
@@ -284,11 +330,13 @@ tests_new_user = [
     status: 400,
     error: 'family_name',
     data: {
-      email: 'mike@mike.com',
-      given_name: 'Mike',
-      family_name: 'Springfield von Bismarck Deux',
-      password: 'password',
-      birthdate: '1992-03-21'
+      user: {
+	email: 'mike@mike.com',
+	given_name: 'Mike',
+	family_name: 'Springfield von Bismarck Deux Marcus Orbit',
+	password: 'password',
+	birthdate: '1992-03-21'
+      }
     }
   },
   {
@@ -296,11 +344,13 @@ tests_new_user = [
     status: 400,
     error: 'family_name',
     data: {
-      email: 'mike@mike.com',
-      given_name: 'Mike',
-      family_name: 'Springfield2',
-      password: 'password',
-      birthdate: '1992-03-21'
+      user: {
+	email: 'mike@mike.com',
+	given_name: 'Mike',
+	family_name: 'Springfield2',
+	password: 'password',
+	birthdate: '1992-03-21'
+      }
     }
   },
   {
@@ -308,11 +358,13 @@ tests_new_user = [
     status: 400,
     error: 'family_name',
     data: {
-      email: 'mike@mike.com',
-      given_name: 'Mike',
-      family_name: 'Springfield (Genius)',
-      password: 'password',
-      birthdate: '1992-03-21'
+      user: {
+	email: 'mike@mike.com',
+	given_name: 'Mike',
+	family_name: 'Springfield (Genius)',
+	password: 'password',
+	birthdate: '1992-03-21'
+      }
     }
   },
   {
@@ -320,11 +372,13 @@ tests_new_user = [
     status: 400,
     error: 'family_name',
     data: {
-      email: 'mike@mike.com',
-      given_name: 'Mike',
-      family_name: 'Springfield*von Bismarck',
-      password: 'password',
-      birthdate: '1992-03-21'
+      user: {
+	email: 'mike@mike.com',
+	given_name: 'Mike',
+	family_name: 'Springfield*von Bismarck',
+	password: 'password',
+	birthdate: '1992-03-21'
+      }
     }
   },
   {
@@ -332,11 +386,13 @@ tests_new_user = [
     status: 400,
     error: 'family_name',
     data: {
-      email: 'mike@mike.com',
-      given_name: 'Mike',
-      family_name: 'S',
-      password: 'password',
-      birthdate: '1992-03-21'
+      user: {
+	email: 'mike@mike.com',
+	given_name: 'Mike',
+	family_name: 'S',
+	password: 'password',
+	birthdate: '1992-03-21'
+      }
     }
   },
   {
@@ -344,11 +400,13 @@ tests_new_user = [
     status: 400,
     error: 'family_name',
     data: {
-      email: 'mike@mike.com',
-      given_name: 'Mike',
-      family_name: 'SpringfieldVeryLongFamilyNameThisIsMoreThanFiftyCharacters',
-      password: 'password',
-      birthdate: '1992-03-21'
+      user: {
+	email: 'mike@mike.com',
+	given_name: 'Mike',
+	family_name: 'SpringfieldVeryLongFamilyNameThisIsMoreThanFiftyCharacters',
+	password: 'password',
+	birthdate: '1992-03-21'
+      }
     }
   },
   {
@@ -356,11 +414,13 @@ tests_new_user = [
     status: 400,
     error: 'password',
     data: {
-      email: 'mike@mike.com',
-      given_name: 'Mike',
-      family_name: 'Springfield',
-      password: 'pass',
-      birthdate: '1992-03-21'
+      user: {
+	email: 'mike@mike.com',
+	given_name: 'Mike',
+	family_name: 'Springfield',
+	password: 'pass',
+	birthdate: '1992-03-21'
+      }
     }
   },
   {
@@ -368,11 +428,13 @@ tests_new_user = [
     status: 400,
     error: 'password',
     data: {
-      email: 'mike@mike.com',
-      given_name: 'Mike',
-      family_name: 'Springfield',
-      password: 'ThisIsAVeryLongPasswordThatNoUserWillEverRemember',
-      birthdate: '1992-03-21'
+      user: {
+	email: 'mike@mike.com',
+	given_name: 'Mike',
+	family_name: 'Springfield',
+	password: 'ThisIsAVeryLongPasswordThatNoUserWillEverRemember',
+	birthdate: '1992-03-21'
+      }
     }
   },
   {
@@ -380,11 +442,13 @@ tests_new_user = [
     status: 400,
     error: 'blacklist',
     data: {
-      email: 'mike@mike.com',
-      given_name: 'Mike',
-      family_name: 'Springfield',
-      password: 'password',
-      birthdate: '1992-03-21'
+      user: {
+	email: 'mike@mike.com',
+	given_name: 'Mike',
+	family_name: 'Springfield',
+	password: 'password',
+	birthdate: '1992-03-21'
+      }
     }
   },
   {
@@ -392,11 +456,13 @@ tests_new_user = [
     status: 400,
     error: 'birthdate',
     data: {
-      email: 'mike@mike.com',
-      given_name: 'Mike',
-      family_name: 'Springfield',
-      password: 'thisisagoodpassword',
-      birthdate: '1992--03'
+      user: {
+	email: 'mike@mike.com',
+	given_name: 'Mike',
+	family_name: 'Springfield',
+	password: 'thisisagoodpassword',
+	birthdate: '1992--03'
+      }
     }
   },
   {
@@ -404,11 +470,13 @@ tests_new_user = [
     status: 400,
     error: 'birthdate',
     data: {
-      email: 'mike@mike.com',
-      given_name: 'Mike',
-      family_name: 'Springfield',
-      password: 'thisisagoodpassword',
-      birthdate: '31-12-1988'
+      user: {
+	email: 'mike@mike.com',
+	given_name: 'Mike',
+	family_name: 'Springfield',
+	password: 'thisisagoodpassword',
+	birthdate: '31-12-1988'
+      }
     }
   },
   {
@@ -416,11 +484,13 @@ tests_new_user = [
     status: 400,
     error: 'birthdate',
     data: {
-      email: 'mike@mike.com',
-      given_name: 'Mike',
-      family_name: 'Springfield',
-      password: 'thisisagoodpassword',
-      birthdate: '1988-21-12'
+      user: {
+	email: 'mike@mike.com',
+	given_name: 'Mike',
+	family_name: 'Springfield',
+	password: 'thisisagoodpassword',
+	birthdate: '1988-21-12'
+      }
     }
   },
   {
@@ -428,11 +498,13 @@ tests_new_user = [
     status: 400,
     error: 'birthdate',
     data: {
-      email: 'mike@mike.com',
-      given_name: 'Mike',
-      family_name: 'Springfield',
-      password: 'thisisagoodpassword',
-      birthdate: 'fkfskfdfs'
+      user: {
+	email: 'mike@mike.com',
+	given_name: 'Mike',
+	family_name: 'Springfield',
+	password: 'thisisagoodpassword',
+	birthdate: 'fkfskfdfs'
+      }
     }
   },
   {
@@ -440,11 +512,13 @@ tests_new_user = [
     status: 400,
     error: 'birthdate',
     data: {
-      email: 'mike@mike.com',
-      given_name: 'Mike',
-      family_name: 'Springfield',
-      password: 'thisisagoodpassword',
-      birthdate: '1st of May of 1988'
+      user: {
+	email: 'mike@mike.com',
+	given_name: 'Mike',
+	family_name: 'Springfield',
+	password: 'thisisagoodpassword',
+	birthdate: '1st of May of 1988'
+      }
     }
   },
   {
@@ -452,11 +526,13 @@ tests_new_user = [
     status: 400,
     error: 'birthdate',
     data: {
-      email: 'mike@mike.com',
-      given_name: 'Mike',
-      family_name: 'Springfield',
-      password: 'thisisagoodpassword',
-      birthdate: '1830-05-24'
+      user: {
+	email: 'mike@mike.com',
+	given_name: 'Mike',
+	family_name: 'Springfield',
+	password: 'thisisagoodpassword',
+	birthdate: '1830-05-24'
+      }
     }
   },
   {
@@ -464,22 +540,26 @@ tests_new_user = [
     status: 400,
     error: 'birthdate',
     data: {
-      email: 'mike@mike.com',
-      given_name: 'Mike',
-      family_name: 'Springfield',
-      password: 'thisisagoodpassword',
-      birthdate: '2099-01-12'
+      user: {
+	email: 'mike@mike.com',
+	given_name: 'Mike',
+	family_name: 'Springfield',
+	password: 'thisisagoodpassword',
+	birthdate: '2099-01-12'
+      }
     }
   },
   {
     test: 'correct format',
     status: 200,
     data: {
-      email: 'mike@mike.com',
-      given_name: 'Mike',
-      family_name: 'Springfield',
-      password: 'notblacklistedpassw0rd',
-      birthdate: '1992-03-21'
+      user: {
+	email: 'mike@mike.com',
+	given_name: 'Mike',
+	family_name: 'Springfield',
+	password: 'notblacklistedpassw0rd',
+	birthdate: '1992-03-21'
+      }
     }
   },
   {
@@ -487,11 +567,13 @@ tests_new_user = [
     status: 400,
     error: 'exists',
     data: {
-      email: 'mike@mike.com',
-      given_name: 'John',
-      family_name: 'Simpson',
-      password: 'anotherOKpassword',
-      birthdate: '1981-09-20'
+      user: {
+	email: 'mike@mike.com',
+	given_name: 'John',
+	family_name: 'Simpson',
+	password: 'anotherOKpassword',
+	birthdate: '1981-09-20'
+      }
     }
   }
 ];
@@ -522,7 +604,7 @@ tests_getUserProfile = [
     error: 'unauthenticated',
   },
   {
-    test: 'no auth - wrong userid (3491)',
+    test: 'no auth - invalid userid (3491)',
     pathparams: '3491',
     status: 404,
     error: 'user not found',
@@ -545,7 +627,7 @@ tests_getUserProfile = [
     }
   },
   {
-    test: 'auth - wrong userid (3491)',
+    test: 'auth - invalid userid (3491)',
     headers: [['Authentication', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOjAsInRva2VuaWQiOiJmY2NiMzM0NiIsIm1heF92YWxpZCI6NDEwMjM1ODQwMDAwMCwibWluX3ZhbGlkIjo5NDY2ODQ4MDAwMDB9.MYBsW7Y9oHyFX0T2dLoJRDrp_gP1m_pmgvItTSYC1zg']],
     pathparams: 3491,
     status: 404,
@@ -590,6 +672,341 @@ tests_getUserProfile = [
   
 ];
 
+tests_updateUser = [
+  {
+    test: 'no auth data',
+    pathparams: 0,
+    status: 400,
+    error: 'insufficient authentication data',
+    data: {
+      user: {
+	given_name: "Edward"
+      }
+    }
+  },
+  {
+    test: 'missing auth data 1',
+    pathparams: 0,
+    status: 400,
+    error: 'insufficient authentication data',
+    data: {
+      auth: {
+	password: '1231fjk12h31'
+      },
+      user: {
+	given_name: "Edward"
+      }
+    }
+  },
+  {
+    test: 'missing auth data 2',
+    pathparams: 0,
+    status: 400,
+    error: 'insufficient authentication data',
+    data: {
+      auth: {
+	email: 'eduard.zorita@nucleotid.com'
+      },
+      user: {
+	given_name: "Edward"
+      }
+    }
+  },
+  {
+    test: 'invalid auth data 1',
+    pathparams: 0,
+    status: 401,
+    error: 'authentication failed',
+    data: {
+      auth: {
+	email: 'eduard.zorita@nucleotid.com',
+	password: '1231fjk12h31'
+      },
+      user: {
+	given_name: "Edward"
+      }
+    }
+  },
+  {
+    test: 'invalid auth data 2',
+    pathparams: 0,
+    status: 401,
+    error: 'authentication failed',
+    data: {
+      auth: {
+	email: 'eduard.zorita@nucleotid.net',
+	password: 'maxmix123'
+      },
+      user: {
+	given_name: "Edward"
+      }
+    }
+  },
+  {
+    test: 'no update data',
+    pathparams: 0,
+    status: 400,
+    error: 'user data required',
+    data: {
+      auth: {
+	email: 'eduard.zorita@nucleotid.com',
+	password: 'maxmix123'
+      },
+    }
+  },
+  {
+    test: 'update data invalid field',
+    pathparams: 0,
+    status: 400,
+    error: 'invalid field',
+    data: {
+      auth: {
+	email: 'eduard.zorita@nucleotid.com',
+	password: 'maxmix123'
+      },
+      user: {
+	stuff: "Hello",
+	given_name: "Edward"
+      }
+    }
+  },
+  {
+    test: 'update data invalid format 1',
+    pathparams: 0,
+    status: 400,
+    error: 'invalid data format',
+    data: {
+      auth: {
+	email: 'eduard.zorita@nucleotid.com',
+	password: 'maxmix123'
+      },
+      user: 12
+    }
+  },
+  {
+    test: 'update data invalid format 2',
+    pathparams: 0,
+    status: 400,
+    error: 'invalid field',
+    data: {
+      auth: {
+	email: 'eduard.zorita@nucleotid.com',
+	password: 'maxmix123'
+      },
+      user: "string"
+    }
+  },
+  {
+    test: 'update data invalid format 3',
+    pathparams: 0,
+    status: 400,
+    error: 'invalid field',
+    data: {
+      auth: {
+	email: 'eduard.zorita@nucleotid.com',
+	password: 'maxmix123'
+      },
+      user: ["array", "of", "strings"]
+    }
+  },
+  {
+    test: 'user id mismatch',
+    pathparams: 123,
+    status: 401,
+    error: 'unauthorized',
+    data: {
+      auth: {
+	email: 'eduard.zorita@nucleotid.com',
+	password: 'maxmix123'
+      },
+      user: {
+	given_name: "Edward"
+      }
+    }
+  },
+  {
+    test: 'invalid given_name format',
+    pathparams: 0,
+    status: 400,
+    error: 'given_name',
+    data: {
+      auth: {
+	email: 'eduard.zorita@nucleotid.com',
+	password: 'maxmix123'
+      },
+      user: {
+	given_name: 1231341
+      }
+    }
+  },
+  {
+    test: 'invalid family_name format',
+    pathparams: 0,
+    status: 400,
+    error: 'family_name',
+    data: {
+      auth: {
+	email: 'eduard.zorita@nucleotid.com',
+	password: 'maxmix123'
+      },
+      user: {
+	given_name: "Edward",
+	family_name: "12901skadja"
+      }
+    }
+  },
+  {
+    test: 'invalid birthdate format',
+    pathparams: 0,
+    status: 400,
+    error: 'birthdate',
+    data: {
+      auth: {
+	email: 'eduard.zorita@nucleotid.com',
+	password: 'maxmix123'
+      },
+      user: {
+	given_name: "Edward",
+	family_name: "Zoris",
+	birthdate: "13-23"
+      }
+    }
+  },
+  {
+    test: 'birthdate out of bounds 1',
+    pathparams: 0,
+    status: 400,
+    error: 'birthdate',
+    data: {
+      auth: {
+	email: 'eduard.zorita@nucleotid.com',
+	password: 'maxmix123'
+      },
+      user: {
+	given_name: "Edward",
+	family_name: "Zoris",
+	birthdate: "2999-02-01"
+      }
+    }
+  },
+  {
+    test: 'birthdate out of bounds 2',
+    pathparams: 0,
+    status: 400,
+    error: 'birthdate',
+    data: {
+      auth: {
+	email: 'eduard.zorita@nucleotid.com',
+	password: 'maxmix123'
+      },
+      user: {
+	given_name: "Edward",
+	family_name: "Zoris",
+	birthdate: "1204-02-01"
+      }
+    }
+  },
+  {
+    test: 'invalid photo',
+    pathparams: 0,
+    status: 400,
+    error: 'photo',
+    data: {
+      auth: {
+	email: 'eduard.zorita@nucleotid.com',
+	password: 'maxmix123'
+      },
+      user: {
+	given_name: "Edward",
+	family_name: "Zoris",
+	birthdate: "1988-02-01",
+	photo: "ksdjsad"
+      }
+    }
+  },
+  {
+    test: 'blacklisted password',
+    pathparams: 0,
+    status: 400,
+    error: 'blacklist',
+    data: {
+      auth: {
+	email: 'eduard.zorita@nucleotid.com',
+	password: 'maxmix123'
+      },
+      user: {
+	given_name: "Edward",
+	family_name: "Zoris",
+	birthdate: "1988-02-01",
+	photo: "https://somefakeurl.com/picture10",
+	password: "password"
+      }
+    }
+  },
+  {
+    test: 'invalid password format',
+    pathparams: 0,
+    status: 400,
+    error: 'password',
+    data: {
+      auth: {
+	email: 'eduard.zorita@nucleotid.com',
+	password: 'maxmix123'
+      },
+      user: {
+	given_name: "Edward",
+	family_name: "Zoris",
+	birthdate: "1988-02-01",
+	photo: "https://somefakeurl.com/picture10",
+	password: "sjf"
+      }
+    }
+  },
+  {
+    test: 'success',
+    pathparams: 0,
+    status: 200,
+    data: {
+      auth: {
+	email: 'eduard.zorita@nucleotid.com',
+	password: 'maxmix123'
+      },
+      user: {
+	given_name: "Edward",
+	family_name: "Zoris",
+	birthdate: "1988-02-01",
+	photo: "https://somefakeurl.com/picture10",
+	password: "ANewPassword1234"
+      }
+    },
+    func: (data) => {
+      user = JSON.parse(data.text);
+      assert(user.id == 0);
+    }
+  },
+];
+
+tests_getUpdatedUserProfile = [
+  {
+    test: 'no auth - userid (0)',
+    pathparams: 0,
+    status: 200,
+    func: (data) => {
+      user = JSON.parse(data.text);
+      assert(user.given_name === 'Edward');
+      assert(user.family_name === 'Zoris');
+      assert(user.photo === 'https://somefakeurl.com/picture10');
+      assert(user.email === undefined);
+      assert(user.password === undefined);
+      assert(user.birthdate === undefined);
+      assert(user.web_active === undefined);
+      assert(user.google_active === undefined);
+      assert(user.created === undefined);
+    }
+  },
+
+];
+
 describe('API /user', () => {
   describe ('POST /user', () => {
     itertest(test, tests_new_user, '/user/', 'post');
@@ -599,6 +1016,12 @@ describe('API /user', () => {
   });
   describe ('GET /user/', () => {
     itertest(test, tests_getUserProfile, '/user/', 'get');
+  });
+  describe ('PATCH /user/', () => {
+    itertest(test, tests_updateUser, '/user/', 'patch');
+  });
+  describe ('GET /user/ (updated)', () => {
+    itertest(test, tests_getUpdatedUserProfile, '/user/', 'get');
   });
   
 });

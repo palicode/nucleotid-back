@@ -24,9 +24,9 @@ router.get('/:userId([0-9]+)/projects/shared', userController.getUserSharedProje
 router.get('/:userId([0-9]+)/notebooks', userController.getUserNotebooks);
 
 // PATCH Routes
-router.patch('/:userId([0-9]+)', userController.updateUser);
+router.patch('/:userId([0-9]+)', userController.validateCredentials, userController.updateUser);
 
 // DELETE Routes
-router.delete('/:userId([0-9]+)', userController.deleteUser);
+router.delete('/:userId([0-9]+)', userController.validateCredentials, userController.deleteUser);
 
 module.exports = router;

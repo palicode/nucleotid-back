@@ -6,6 +6,7 @@ const uuid   = require('uuid/v4');
 const config = require('../../config')[process.env.NODE_ENV || 'dev'];
 const validator = require('validator');
 const db     = psql.db;
+const pgp    = psql.pgp;
 const log    = require('../modules/logger').logmodule(module);
 
 
@@ -36,10 +37,6 @@ module.exports.createWebUser = async (req, res, next) => {
     return res.status(400).json({"error": "email exists"});
   }
 
-  // hashPassword.
-  const hash = crypto.createHash('SHA512');
-  hash.update(user.password);
-  const hashpass = hash.digest('hex');
 
   var id = undefined, uuid_token = undefined;
 
@@ -54,7 +51,7 @@ module.exports.createWebUser = async (req, res, next) => {
 			user.given_name,
 			user.family_name,
 			user.email,
-			hashpass,
+			user.password,
 			user.birthdate || null,
 			false,
 			false
@@ -262,11 +259,73 @@ module.exports.getUserNotebooks = async (req, res, next) => {
 // UpdateUser
 // Updates user information.
 module.exports.updateUser = async (req, res, next) => {
-  // Check credentials.
-  // If not match, return 403.
-  // Otherwise update received fields in user profile. (Require login (no OAUTH) to update password).
-  // How to handle e-mail updates?
-  res.send(404);
+  // TODO:
+  // - How to handle e-mail updates? New e-mails must be verified as well!
+  
+  // Define updatable columns
+  const updatable = ['given_name', 'family_name', 'email', 'password', 'birthdate', 'photo'];
+
+  // This function is called from validateCredentials. There is no need to double-check authentication or user id.
+  var credentials = req.credentials;
+  var user = req.body.user;
+
+  // checkBodyData
+  // Check if provided data is correct.
+  if (!user) {
+    log.info('updateUser(checkBodyData) 400 - user data not provided');
+    return res.status(400).json({error: "user data required"});
+  }
+
+
+  // checkUserId
+  // Checks if authenticated user and target user for update match.
+  if (req.params.userId !== credentials.id) {
+    log.info('updateUser(checkUserId) 401 - unauthorized: logged user and target user differ');
+    return res.status(401).json({error: "unauthorized"});
+  }
+
+  // checkDataKeys
+  // Check length.
+  var klen = Object.keys(user).length;
+  if (klen == 0 || klen > updatable.length) {
+    log.info(`updateUser(checkDataKeys) 400 - invalid data format`);
+    return res.status(400).json({error: `invalid data format`});
+  }
+  // Check data keys.
+  var field_err = undefined;
+  Object.keys(user).forEach(k => {
+    if(updatable.indexOf(k) === -1) {
+      field_err = k;
+    }
+  });
+
+  if (field_err) {
+    log.info(`updateUser(checkDataKeys) 400 - invalid field: ${field_err}`);
+    return res.status(400).json({error: `invalid field - ${field_err}`});
+  }
+
+  // parseUserData
+  // Parses user data types and format.
+  var valid_data = await parseUserData(user);
+
+  if (valid_data.error) {
+    log.info(`updateUser(parseUserData) 400 - ${valid_data.error}`);
+    return res.status(400).json(valid_data);
+  }
+
+  // updateDB
+  // Writes information to database.
+  try {
+    var upd = await db.oneOrNone(pgp.helpers.update(valid_data, null, psql.tables.user) + ' WHERE id=$1 RETURNING id',
+				 [credentials.id]);
+  } catch (err) {
+    log.error(`updateUser(updateDB) 500 - database error: ${err}`);
+    return res.status(500).end();
+  }
+
+  // Return status 200
+  log.error(`updateUser() 200`);
+  return res.status(200).json(upd);
 };
 
 
@@ -337,13 +396,13 @@ module.exports.validateCredentials = async (req, res, next) => {
   hash.update(req.body.auth.password);
   const hashpass = hash.digest('hex');
 
-  if (user.password !== hashpass) {
+  if (!crypto.timingSafeEqual(Buffer.from(user.password, 'hex'), Buffer.from(hashpass, 'hex'))) {
     let e = {error: "authentication failed"};
     log.info(`validateCredentials(validatePassword) 401 - ${e.error}`);
     return res.status(401).json(e);
   }
 
-  req.user = user;
+  req.credentials = user;
 
   // Authentication successful. Next middleware.
   return next();
@@ -358,95 +417,159 @@ function isValidDate(d) {
   return d instanceof Date && !isNaN(d);
 }
 
+async function parseUserData(user) {
+  var newuser = {};
+
+  try {
+    if (user.email) {
+      // validateEmail
+      // email: email format
+      if (!validator.isLength(user.email, {max: email_opts.max_len}) || !validator.isEmail(user.email)) {
+	throw new Error();
+      }
+      
+      newuser.email = validator.normalizeEmail(user.email);
+    }
+  } catch (err) {
+    return {"error": "invalid email format"};
+  }
+
+  try {
+    if (user.given_name) {
+      // validateGivenName
+      // given_name: unicode max two words, min 2 char and max 25 char
+      if (!validator.isLength(user.given_name, {min:2, max:25}) ||
+	  user.given_name.split(' ').length > 2 ||
+	  !re.unicodeWords(user.given_name)) {
+	throw new Error();
+      } 
+
+      newuser.given_name = user.given_name;
+    }
+  } catch (err) {
+    return {"error": "invalid given_name format"};
+  }
+
+  try {
+    if (user.family_name) {
+      // validateFamilyName
+      // family_name: unicode multiple words, max 50 char, max 5 words
+
+      if (!re.unicodeWords(user.family_name, '-') ||
+	  !validator.isLength(user.family_name, {min:2, max:50}) ||
+	  user.family_name.split(' ').length > 5) {
+	throw new Error();
+      }
+      
+      newuser.family_name = user.family_name.replace(/\s+/g, ' ');
+    }
+  } catch (err) {
+    return {"error": "invalid family_name format"};    
+  }
+  
+  if (user.password) {
+    // validatePassword
+    // password: min len 6
+    try {
+      if (!validator.isLength(user.password, {min: passwd_opts.min_len, max: passwd_opts.max_len})) {
+	throw new Error();
+      }
+    } catch (err) {
+      return {"error": "invalid password format"};
+    }
+
+    // validatePasswordBlacklist
+    // password must not be in blacklisted database.
+    try {
+      var blacklist = await db.oneOrNone('SELECT password FROM $1~ WHERE password=$2',
+					 [psql.tables.password_blacklist,
+					  user.password]);
+    } catch (err) {
+      throw err;
+    }
+
+    if (blacklist) {
+      return {"error": "password blacklisted"};
+    }
+
+    // hashPassword.
+    const hash = crypto.createHash('SHA512');
+    hash.update(user.password);
+    const hashpass = hash.digest('hex');
+
+    newuser.password = hashpass;
+
+  }
+
+  // validateBirthdate
+  // birthdate: any format accepted by Date, no later than today, not before 150 years ago.
+  try {
+    if (user.birthdate) {
+      var bd = new Date(user.birthdate);
+      if (!isValidDate(bd)) {
+	throw new Error();
+      }
+
+      var now = new Date(Date.now());
+      var mindate = new Date(Date.now());
+      mindate.setFullYear(mindate.getFullYear()-150);
+      if (bd >= now || bd < mindate) {
+	return {"error": "birthdate out of bounds"};
+      }
+      
+      newuser.birthdate = bd;
+    }
+  } catch (err) {
+    return {"error": "invalid birthdate format"};
+  }
+
+  // validatePhoto
+  try {
+    if (user.photo) {
+      if (!validator.isURL(user.photo)) {
+	throw new Error();
+      }
+
+      newuser.photo = user.photo;
+    }
+  } catch (err) {
+    return {"error": "invalid photo format"};
+  }
+
+  // Return valid data.
+  return newuser;
+}
+
 // validateNewUser
 // Validates data for newUser requests.
 module.exports.validateNewUser = async (req, res, next) => {
   log.log('debug', `validateNewUser(POST): ${JSON.stringify(req.body)}`);
 
-  if (!req.body.email)
+  if (!req.body.user)
+    return res.status(400).json({"error": "user object required"});
+
+  var user = req.body.user;
+  
+  if (!user.email)
     return res.status(400).json({"error": "email required"});
-  if (!req.body.given_name)
+  if (!user.given_name)
     return res.status(400).json({"error": "given_name required"});
-  if (!req.body.family_name)
+  if (!user.family_name)
     return res.status(400).json({"error": "family_name required"});
-  if (!req.body.password)
+  if (!user.password)
     return res.status(400).json({"error": "password required"});
 
-  // validateEmail
-  // email: email format
-  if (!validator.isLength(req.body.email, {max: email_opts.max_len}) || !validator.isEmail(req.body.email)) {
-    log.info(`validateNewUser(validateEmail) 400 - invalid email format: ${req.body.email}`);
-    return res.status(400).json({"error": "invalid email format"});
-  }
+  // parseUserData
+  // Check all fields have correct format
+  var newuser = await parseUserData(user);
 
-  // validateGivenName
-  // given_name: unicode max two words, min 2 char and max 25 char
-  if (!validator.isLength(req.body.given_name, {min:2, max:25}) ||
-      req.body.given_name.split(' ').length > 2 ||
-      !re.unicodeWords(req.body.given_name)) {
-    log.info(`validateNewUser(validateGivenName) 400 - invalid given_name format: ${req.body.given_name}`);
-    return res.status(400).json({"error": "invalid given_name format"});
-  }
-
-  // validateFamilyName
-  // family_name: unicode multiple words, max 50 char, max 3 words
-  if (!re.unicodeWords(req.body.family_name, '-') ||
-      !validator.isLength(req.body.family_name, {min:2, max:50}) ||
-      req.body.family_name.split(' ').length > 3) {
-    log.info(`validateNewUser(validateFamilyName) 400 - invalid family_name format: ${req.body.family_name}`);
-    return res.status(400).json({"error": "invalid family_name format"});
-  }
-
-  // validatePassword
-  // password: min len 6
-  if (!validator.isLength(req.body.password, {min: passwd_opts.min_len, max: passwd_opts.max_len})) {
-    log.info(`validateNewUser(validatePassword) 400 - invalid password format: ${req.body.password}`);
-    return res.status(400).json({"error": "invalid password format"});
-  }
-
-  // validatePasswordBlacklist
-  // password must not be in blacklisted database.
-  try {
-    var blacklist = await db.oneOrNone('SELECT password FROM $1~ WHERE password=$2',
-				       [psql.tables.password_blacklist,
-					req.body.password]);
-  } catch (err) {
-    log.error(`validateNewUser(validatePasswordBlacklist) 500 - database error: ${err}`);
-    return res.status(500).end();
-  }
-
-  if (blacklist) {
-    log.info(`validateNewUser(validatePasswordBlacklist) 400 - password blacklisted: ${req.body.password}`);
-    return res.status(400).json({"error": "password blacklisted"});
+  if (newuser.error) {
+    log.info(`validateNewUser(validateUserData) 400 - ${newuser.error}`);
+    return res.status(400).json(newuser);
   }
 
   // Add fields to newuser.
-  req.newuser = {
-    email: validator.normalizeEmail(req.body.email),
-    given_name: req.body.given_name,
-    family_name: req.body.family_name.replace(/\s+/g, ' '),
-    password: req.body.password
-  };
-
-  // validateBirthdate
-  // birthdate: any format accepted by Date, no later than today, not before 150 years ago.
-  if (req.body.birthdate) {
-    var bd = new Date(req.body.birthdate);
-    if (!isValidDate(bd)) {
-      log.info(`validateNewUser(validateBirthdate) 400 - invalid birthdate format: ${req.body.birthdate}`);
-      return res.status(400).json({"error": "invalid birthdate format"});
-    }
-
-    var now = new Date(Date.now());
-    var mindate = new Date(Date.now());
-    mindate.setFullYear(mindate.getFullYear()-150);
-    if (bd >= now || bd < mindate) {
-      log.info(`validateNewUser(validateBirthdate) 400 - birthdate out of bounds: ${req.body.birthdate}`);
-      return res.status(400).json({"error": "birthdate out of bounds"});
-    }
-
-    req.newuser.birthdate = bd;
-  }
+  req.newuser = newuser;
 
   // Next middleware.
   log.info(`validateNewUser() next`);

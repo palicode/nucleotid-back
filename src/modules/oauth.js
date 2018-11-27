@@ -36,7 +36,7 @@ module.exports.initialize = function initialize(options) {
 // Creates a new session. Registers a refresh token and returns both refresh and access tokens.
 module.exports.newSession =  async (req, res, next) => {
   // Get user identifier from request body.
-  var userId = req.user.id;
+  var userId = req.credentials.id;
   
   // createSession
   //  refresh token id in auth_session.

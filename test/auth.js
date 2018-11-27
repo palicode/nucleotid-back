@@ -7,20 +7,24 @@ var test_users = [
     test: 'new user authtest@email.com:passw0rd123',
     status: 200,
     data: {
-      email: 'authtest@email.com',
-      given_name: 'Test',
-      family_name: 'Surname',
-      password: 'passw0rd123'
+      user: {
+	email: 'authtest@email.com',
+	given_name: 'Test',
+	family_name: 'Surname',
+	password: 'passw0rd123'
+      }
     }
   },
   {
     test: 'new user authdummy@email.com:dummyPassword',
     status: 200,
     data: {
-      email: 'authdummy@email.com',
-      given_name: 'Dummy',
-      family_name: 'Surname',
-      password: 'dummyPassword'
+      user: {
+	email: 'authdummy@email.com',
+	given_name: 'Dummy',
+	family_name: 'Surname',
+	password: 'dummyPassword'
+      }
     }
   },
 ];
