@@ -46,7 +46,7 @@ function start_server () {
   var https_app = require('./https_app');
   var https = require('https');
   var fs = require('fs');
-  var config = require('../config')[process.env.NODE_ENV || 'dev'];
+  var config = require('../config').server[process.env.NODE_ENV || 'dev'];
 
   /*
   ** Create HTTPS server.

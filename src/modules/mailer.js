@@ -35,7 +35,12 @@ module.exports.sendWelcomeMail = (user, token_url) => {
 
   // TODO: Define callback or convert function to promise.
   transporter.sendMail(message, (err, info) => {
-    log.info(`sendWelcomeMail(sent) to: ${user.email}`);
+    if (err) {
+      log.info(`sendWelcomeMail(sent) error sending email to: ${user.email}, error: ${err}`);
+    } else {
+      log.info(`sendWelcomeMail(sent) to: ${user.email}`);
+    }
+
   });
 };
 

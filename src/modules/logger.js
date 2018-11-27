@@ -13,6 +13,12 @@ const log_format = winston.format.printf(info => {
   return `${info.timestamp} ${info.level}: ${info.message}`;
 });
 
+const console_format = winston.format.printf(info => {
+  var d = new Date(info.timestamp);
+  return `${d.toLocaleTimeString()} ${info.level}: ${info.message}`;
+});
+
+
 const logger = winston.createLogger({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
   format: winston.format.combine(
@@ -39,9 +45,9 @@ const logger = winston.createLogger({
 //if (process.env.NODE_ENV !== 'production') {
 if (process.env.NODE_ENV === 'dev') {
   logger.add(new winston.transports.Console({
-    format: winston.combine(
-      winston.format.colorize(),
-      winston.format.simple()
+    format: winston.format.combine(
+      winston.format.timestamp(),
+      console_format
     )
   }));
 }

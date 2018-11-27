@@ -8,7 +8,7 @@ module.exports = (test, test_cases, path, method='post') => {
     // Iterate over test cases.
     it(test_case.test, (done) => {
       // Create request.
-      var out = test[method](path);
+      var out = test[method](path+(test_case.pathparams == undefined ? "" : test_case.pathparams));
       
       // Send data if available.
       if (test_case.data) {
@@ -34,8 +34,8 @@ module.exports = (test, test_cases, path, method='post') => {
       }
       
       // Parse return data
-      if (test_case.parse) {
-	out = out.expect(test_case.parse);
+      if (test_case.func) {
+	out = out.expect(test_case.func);
       }
       
       // Finish test

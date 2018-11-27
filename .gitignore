@@ -1,5 +1,6 @@
 env/production
 crt
-db
+db/test
+db/dev
 logs
 node_modules

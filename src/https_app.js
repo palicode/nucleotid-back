@@ -6,7 +6,7 @@ var psql        = require('./modules/db');
 var oauth       = require('./modules/oauth');
 var cors        = require('./modules/cors');
 var mailer      = require('./modules/mailer');
-var config      = require('../config.js')[process.env.NODE_ENV || "dev"];
+var config      = require('../config.js').server[process.env.NODE_ENV || "dev"];
 
 // Configure CORS.
 var cors_options = {
@@ -50,7 +50,7 @@ app.use('/auth', require('./routes/auth'));
 // 404 Middleware
 app.use((req, res, next) => {
   log.info(`UnmatchedRoute 404 - ${req.method} ${req.originalUrl}`);
-  return req.status(404).end();
+  return res.status(404).end();
 });
 
 module.exports = app;
