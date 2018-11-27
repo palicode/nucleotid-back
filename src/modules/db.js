@@ -39,18 +39,6 @@ module.exports.updateModifiedById = async (table, id) => {
 };
 
 /*
-** HELPER FUNCTIONS
-*/
-
-module.exports.rowToObject = (colnames, row) => {
-  var cols = colnames.match(/[^\(^,^\)^\s]+/g);
-  var vals = row.match(/[^\(^,^\)^\s]+/g);
-  var obj = {};
-  cols.forEach((key, i) => obj[key] = vals[i]);
-  return obj;
-};
-
-/*
 ** DATABASE TABLES
 */
 
