@@ -15,7 +15,7 @@ services:
   node:
     image: node:8
     working_dir: /app
-    command: bash -c "export NODE_ENV=test && node test/test_db.js && ./node_modules/.bin/nyc npm run test"
+    command: bash -c "export NODE_ENV=test && node db/test_db.js && ./node_modules/.bin/nyc npm run test"
     env_file:
       - ../env/test/db.env
       - ../env/test/node.env
