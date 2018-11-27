@@ -644,9 +644,9 @@ tests_getUserProfile = [
       assert(user.photo === 'https://i1.rgstatic.net/ii/profile.image/315640353624067-1452265932482_Q512/Eduard_Valera_Zorita.jpg');
       assert(user.email === 'eduard.zorita@nucleotid.com');
       assert(user.password === undefined);
-      assert(user.birthdate ==='1988-01-01');
-      assert(user.web_active === 't');
-      assert(user.google_active === 'f');
+      assert(new Date(user.birthdate).toLocaleDateString() == '1988-1-1');
+      assert(user.web_active === true);
+      assert(user.google_active === false);
       assert(user.created != undefined);
       
     }

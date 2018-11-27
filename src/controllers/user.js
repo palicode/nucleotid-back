@@ -184,9 +184,9 @@ module.exports.getUserProfile = async (req, res, next) => {
   // selectInfo
   // Select public or private profile
   if (uid === req.auth.userid) {
-    info = '(given_name, family_name, email, birthdate, photo, web_active, google_active, created)';
+    info = 'given_name, family_name, email, birthdate, photo, web_active, google_active, created';
   } else {
-    info = '(given_name, family_name, photo)';
+    info = 'given_name, family_name, photo';
   }
   log.info(`getUserProfile(selectInfo): ${info}`);
 
@@ -207,7 +207,6 @@ module.exports.getUserProfile = async (req, res, next) => {
 
   // parseDBRow
   // Converts DB row into object.
-  user = psql.rowToObject(info, user.row);
   log.info(`getUserProfile(parseDBRow) object: ${JSON.stringify(user)}`);
 
   log.info('getUserProfile() 200');
